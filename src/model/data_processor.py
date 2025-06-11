@@ -78,6 +78,14 @@ class DataProcessor:
         """Procesa los datos de pagos (Efecty o Bancolombia)."""
         if payment_type not in ['efecty', 'bancolombia']:
             raise ValueError("Tipo de pago debe ser 'efecty' o 'bancolombia'")
+        # Convertir columnas de fecha (si existen) para eliminar la parte horaria
+       # Formatear fechas en DD/MM/YYYY (para columnas conocidas)
+        if payment_type == 'bancolombia' and 'Fecha' in payment_df.columns:
+          payment_df['Fecha'] = pd.to_datetime(payment_df['Fecha']).dt.strftime('%d/%m/%Y')
+    
+        if payment_type == 'efecty' and 'Fecha' in payment_df.columns:
+          payment_df['Fecha'] = pd.to_datetime(payment_df['Fecha']).dt.strftime('%d/%m/%Y')
+         
         
         merge_conf = self.config.merge_config[payment_type]
         
