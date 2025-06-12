@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.font import Font
-from model.data_models import AppConfig
+from models.data_models import AppConfig
 
 class MainWindow:
     def __init__(self, root, controller):

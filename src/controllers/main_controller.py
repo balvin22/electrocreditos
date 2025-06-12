@@ -1,8 +1,8 @@
 import os
 from tkinter import filedialog, messagebox
 from typing import Callable
-from model.data_processor import DataProcessor  # Cambiado a import absoluto
-from model.data_models import DataProcessingConfig
+from models.data_processor import DataProcessor  # Cambiado a import absoluto
+from models.data_models import DataProcessingConfig
 
 class MainController:
     def __init__(self, view):

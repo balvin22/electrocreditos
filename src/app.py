@@ -7,8 +7,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 
 
-from controller.main_controller import MainController
-from view.main_window import MainWindow
+from controllers.main_controller import MainController
+from views.main_window import MainWindow
 
 def main():
     try:
