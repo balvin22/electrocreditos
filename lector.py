@@ -112,6 +112,7 @@ def load_and_filter_data(file_path: str, config: DataProcessingConfig) -> Dict[s
             # Renombrar columnas si es necesario
             if sheet_name in config.rename_columns:
                 df.rename(columns=config.rename_columns[sheet_name], inplace=True)
+                
             
             filtered_data[sheet_name] = df
         
@@ -145,6 +146,12 @@ def process_payment_data(payment_df: pd.DataFrame, dfs: Dict[str, pd.DataFrame],
     """Procesa los datos de pagos (Efecty o Bancolombia)."""
     if payment_type not in ['efecty', 'bancolombia']:
         raise ValueError("Tipo de pago debe ser 'efecty' o 'bancolombia'")
+    # Formato de fechas
+    if payment_type == 'bancolombia' and 'Fecha' in payment_df.columns:
+          payment_df['Fecha'] = pd.to_datetime(payment_df['Fecha']).dt.strftime('%d/%m/%Y')
+    
+    if payment_type == 'efecty' and 'Fecha' in payment_df.columns:
+          payment_df['Fecha'] = pd.to_datetime(payment_df['Fecha']).dt.strftime('%d/%m/%Y')
     
     merge_conf = config.merge_config[payment_type]
     
@@ -246,6 +253,7 @@ def process_payment_data(payment_df: pd.DataFrame, dfs: Dict[str, pd.DataFrame],
         'CEDULA_FS_y', 'FACTURA_FS', 'CEDULA_ARP', 'CEDULA_ARP_y',
         'FACTURA_ARP', 'SALDO_FS', 'SALDO_ARP'
     ]
+    
     
     result_df = result_df.drop(columns=[col for col in columns_to_drop if col in result_df.columns])
     

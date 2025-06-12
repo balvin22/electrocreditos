@@ -78,7 +78,7 @@ class DataProcessor:
         """Procesa los datos de pagos (Efecty o Bancolombia)."""
         if payment_type not in ['efecty', 'bancolombia']:
             raise ValueError("Tipo de pago debe ser 'efecty' o 'bancolombia'")
-        # Convertir columnas de fecha (si existen) para eliminar la parte horaria
+       # Convertir columnas de fecha (si existen) para eliminar la parte horaria
        # Formatear fechas en DD/MM/YYYY (para columnas conocidas)
         if payment_type == 'bancolombia' and 'Fecha' in payment_df.columns:
           payment_df['Fecha'] = pd.to_datetime(payment_df['Fecha']).dt.strftime('%d/%m/%Y')
@@ -143,8 +143,9 @@ class DataProcessor:
         )
         
         # Unificar saldos
-        df_fs_saldos = dfs['AC FS'][['FACTURA_FS', 'SALDO_FS']].rename(columns={'FACTURA_FS': 'FACTURA', 'SALDO_FS': 'SALDO'})
-        df_arp_saldos = dfs['AC ARP'][['FACTURA_ARP', 'SALDO_ARP']].rename(columns={'FACTURA_ARP': 'FACTURA', 'SALDO_ARP': 'SALDO'})
+        df_fs_saldos = dfs['AC FS'][['FACTURA_FS', 'SALDO_FS','CENTRO_COSTO_FS']].rename(columns={'FACTURA_FS': 'FACTURA', 'SALDO_FS': 'SALDO','CENTRO_COSTO_FS': 'CENTRO COSTO'})
+        df_arp_saldos = dfs['AC ARP'][['FACTURA_ARP', 'SALDO_ARP','CENTRO_COSTO_ARP']].rename(columns={'FACTURA_ARP': 'FACTURA', 'SALDO_ARP': 'SALDO', 'CENTRO_COSTO_ARP': 'CENTRO COSTO'})
+       
         df_saldos_unificados = pd.concat([df_fs_saldos, df_arp_saldos], ignore_index=True).drop_duplicates(subset='FACTURA')
         
         result_df['FACTURA FINAL'] = result_df['FACTURA FINAL'].astype(str)
@@ -186,30 +187,97 @@ class DataProcessor:
             'vincedula', 'FACTURA', 'DOCUMENTO_CODEUDOR', 'FACTURA_x', 'FACTURA_y',
             'ESTADO_EMPLEADO', 'CEDULA_FS', 'CEDULA_FS_x', 'CEDULA_ARP_x',
             'CEDULA_FS_y', 'FACTURA_FS', 'CEDULA_ARP', 'CEDULA_ARP_y',
-            'FACTURA_ARP', 'SALDO_FS', 'SALDO_ARP'
+            'FACTURA_ARP', 'SALDO_FS', 'SALDO_ARP', 'CENTRO_COSTO_FS','CENTRO_COSTO_ARP',
         ]
         
         result_df = result_df.drop(columns=[col for col in columns_to_drop if col in result_df.columns])
+        print(result_df)
+        
+        result_df = result_df.rename(columns={'FACTURA FINAL': 'Documento Cartera','CENTRO COSTO': 'C. Costo',
+                                              'SALDOS':'Valor Aplicar','CASA COBRANZA': 'Casa cobranza',
+                                              'EMPLEADO': 'Empleado',
+                                              })
+        condiciones = [
+           result_df['Casa cobranza'] != 'SIN CASA DE COBRANZA',
+           result_df['CODEUDOR'] != 'SIN CODEUDOR',
+           result_df['VALIDACION ULTIMO SALDO'] == 'pago total'
+           ]
+        valores = [
+           result_df['Casa cobranza'],
+            'Codeudor',
+            'Pago total'
+        ]
+        
+        result_df['Novedad'] = np.select(condiciones, valores, default='Sin novedad')
+        
+        condiciones_empresa = [
+         # Caso 1: Documento cartera NO es 'SIN CARTERA' y empieza con 'DF'
+          (result_df['Documento Cartera'] != 'SIN CARTERA') & result_df['Documento Cartera'].str.startswith('DF'),
+    
+         # Caso 2: Documento cartera NO es 'SIN CARTERA' y NO empieza con 'DF'
+          (result_df['Documento Cartera'] != 'SIN CARTERA') & ~result_df['Documento Cartera'].str.startswith('DF'),
+    
+         # Caso 3: Documento cartera es 'SIN CARTERA', pero CODEUDOR empieza con 'DF'
+          (result_df['Documento Cartera'] == 'SIN CARTERA') & (result_df['CODEUDOR'] != 'SIN CODEUDOR') & result_df['CODEUDOR'].str.startswith('DF'),
+    
+         # Caso 4: Documento cartera es 'SIN CARTERA', CODEUDOR no empieza con 'DF'
+          (result_df['Documento Cartera'] == 'SIN CARTERA') & (result_df['CODEUDOR'] != 'SIN CODEUDOR') & ~result_df['CODEUDOR'].str.startswith('DF'),
+]
+        valores_empresa = [
+          'Finansueños',  # Caso 1
+          'Arpesod',      # Caso 2
+          'Finansueños',  # Caso 3
+          'Arpesod'       # Caso 4
+]
+        
+        result_df['Empresa'] = np.select(condiciones_empresa, valores_empresa, default='')
+    
+        
+        
+                                         
+      
         
         return result_df
+    
+    
 
     def save_results_to_excel(self, df_bancolombia: pd.DataFrame, df_efecty: pd.DataFrame, 
-                            output_file: str) -> bool:
+                              output_file: str) -> bool:
         """Guarda los resultados en un archivo Excel con manejo de errores."""
+        COLUMN_ORDER_EFECTY = [
+        'No', 'Identificación', 'Valor', 'N° de Autorización', 'Fecha',
+        'Documento Cartera', 'C. Costo', 'Empresa', 'Vr a Aplicar',
+        'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
+        'Empleado', 'Novedad'
+    ]
+        COLUMN_ORDER_BANCOLOMBIA = [
+        'No.', 'Fecha', 'Detalle 1', 'Detalle 2', 'Referencia 1', 'Referencia 2',
+        'Valor', 'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
+        'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
+        'Empleado', 'Novedad'
+    ]
+
+        def limpiar_referencia(valor):
+            try:
+                if pd.isnull(valor) or valor == '':
+                    return ''
+                return str(int(float(valor)))
+            except (ValueError, TypeError):
+                return ''
+
         try:
+            # Limpiar campo 'Referencia 2' si existe en el DataFrame de Bancolombia
+            if 'Referencia 2' in df_bancolombia.columns:
+                df_bancolombia['Referencia 2'] = df_bancolombia['Referencia 2'].apply(limpiar_referencia)
+            
+            df_efecty = df_efecty.reindex(columns=COLUMN_ORDER_EFECTY)
+            df_bancolombia = df_bancolombia.reindex(columns=COLUMN_ORDER_BANCOLOMBIA)
+
+            # Escribir ambos DataFrames a un archivo Excel
             with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
                 df_bancolombia.to_excel(writer, sheet_name='Bancolombia', index=False)
                 df_efecty.to_excel(writer, sheet_name='Efecty', index=False)
-            
-            # Verificar que el archivo se creó correctamente
-            if os.path.exists(output_file):
-                with pd.ExcelFile(output_file) as xls:
-                    if not all(sheet in xls.sheet_names for sheet in ['Bancolombia', 'Efecty']):
-                        raise ValueError("No se crearon todas las hojas en el archivo de salida")
-                
-                return True
-            else:
-                raise ValueError("No se pudo crear el archivo de salida")
-                
+
+            return True
         except Exception as e:
-            raise ValueError(f"Error al guardar resultados: {str(e)}")
+            raise ValueError(f"Error al guardar archivo Excel: {str(e)}")

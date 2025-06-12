@@ -40,8 +40,8 @@ class DataProcessingConfig:
         
         if self.rename_columns is None:
             self.rename_columns = {
-                'AC FS': {'CEDULA': 'CEDULA_FS', 'FACTURA': 'FACTURA_FS', 'saldofac': 'SALDO_FS', 'ccosto': 'CENTRO COSTO FS'},
-                'AC ARP': {'CEDULA': 'CEDULA_ARP', 'FACTURA': 'FACTURA_ARP', 'saldofac': 'SALDO_ARP', 'ccosto': 'CENTRO COSTO ARP'},
+                'AC FS': {'CEDULA': 'CEDULA_FS', 'FACTURA': 'FACTURA_FS', 'saldofac': 'SALDO_FS', 'ccosto': 'CENTRO_COSTO_FS'},
+                'AC ARP': {'CEDULA': 'CEDULA_ARP', 'FACTURA': 'FACTURA_ARP', 'saldofac': 'SALDO_ARP', 'ccosto': 'CENTRO_COSTO_ARP'},
                 'CODEUDORES': {'FACTURA': 'CODEUDOR', 'CODEUDOR': 'DOCUMENTO_CODEUDOR'},
                 'CASA DE COBRANZA': {'cobra': 'CASA COBRANZA'},
                 'EMPLEADOS ACTUALES': {'ACTIVO': 'ESTADO_EMPLEADO'}
@@ -60,7 +60,7 @@ class DataProcessingConfig:
                     'empleados': ('Referencia 1', 'vincedula'),
                     'ac_fs': ('Referencia 1', 'CEDULA_FS'),
                     'ac_arp': ('Referencia 1', 'CEDULA_ARP'),
-                    'casa_cobranza': ('CARTERA EN ARPESOD', 'FACTURA'),
+                    'casa_cobranza': ('FACTURA FINAL', 'FACTURA'),
                     'codeudores': ('Referencia 1', 'DOCUMENTO_CODEUDOR')
                 }
             }
