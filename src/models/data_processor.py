@@ -185,6 +185,7 @@ class DataProcessor:
             dfs['CODEUDORES'], 
             *merge_conf['codeudores']
          )
+        # Asegurarse de que la columna 'CODEUDOR' sea de tipo string
         result_df['CODEUDOR'] = result_df['CODEUDOR'].fillna('SIN CODEUDOR')
         
         # Eliminar columnas innecesarias
@@ -249,6 +250,7 @@ class DataProcessor:
           'Arpesod'       # Caso 4
           ]
         
+        # Asigna la columna 'Empresa' según las condiciones
         result_df['Empresa'] = np.select(condiciones_empresa, valores_empresa, default='')
         
         diferencia = result_df['Valor'] - result_df['Valor Aplicar']
@@ -257,11 +259,9 @@ class DataProcessor:
         diferencia,
          0  # o np.nan si prefieres que no se muestre nada
          )
-        
         return result_df
     
-    
-
+    # Guardar resultados en un archivo Excel con formato y resaltado condicional
     def save_results_to_excel(self, df_bancolombia: pd.DataFrame, df_efecty: pd.DataFrame, 
                               output_file: str) -> bool:
         """Guarda los resultados en un archivo Excel con manejo de errores."""
