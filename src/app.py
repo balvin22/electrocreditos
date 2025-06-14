@@ -5,8 +5,6 @@ from pathlib import Path
 # Añade el directorio src al path de Python
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-
-
 from controllers.main_controller import MainController
 from views.main_window import MainWindow
 

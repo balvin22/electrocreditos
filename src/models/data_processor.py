@@ -123,6 +123,7 @@ class DataProcessor:
             merge_conf['ac_fs'][0], 
             'CEDULA_FS'
         )
+        # Asegurarse de que la columna 'CANTIDAD CUENTAS FS' sea de tipo int
         result_df['CANTIDAD CUENTAS FS'] = result_df['CANTIDAD CUENTAS FS'].fillna(0).astype(int)
         
         # Contar cuentas ARP
@@ -133,6 +134,7 @@ class DataProcessor:
             merge_conf['ac_arp'][0], 
             'CEDULA_ARP'
         )
+        # Asegurarse de que la columna 'CANTIDAD CUENTAS ARP' sea de tipo int
         result_df['CANTIDAD CUENTAS ARP'] = result_df['CANTIDAD CUENTAS ARP'].fillna(0).astype(int)
         
         # Determinar factura final
@@ -146,8 +148,10 @@ class DataProcessor:
         df_fs_saldos = dfs['AC FS'][['FACTURA_FS', 'SALDO_FS','CENTRO_COSTO_FS']].rename(columns={'FACTURA_FS': 'FACTURA', 'SALDO_FS': 'SALDO','CENTRO_COSTO_FS': 'CENTRO COSTO'})
         df_arp_saldos = dfs['AC ARP'][['FACTURA_ARP', 'SALDO_ARP','CENTRO_COSTO_ARP']].rename(columns={'FACTURA_ARP': 'FACTURA', 'SALDO_ARP': 'SALDO', 'CENTRO_COSTO_ARP': 'CENTRO COSTO'})
        
+        # Unificar los DataFrames de saldos
         df_saldos_unificados = pd.concat([df_fs_saldos, df_arp_saldos], ignore_index=True).drop_duplicates(subset='FACTURA')
         
+        # Asegurarse de que la columna 'FACTURA FINAL' sea de tipo string para la fusión
         result_df['FACTURA FINAL'] = result_df['FACTURA FINAL'].astype(str)
         result_df = self.merge_dataframes(
             result_df, 
@@ -155,6 +159,7 @@ class DataProcessor:
             'FACTURA FINAL', 
             'FACTURA'
         )
+        # Renombrar y limpiar columnas
         result_df = result_df.rename(columns={'SALDO': 'SALDOS'})
         result_df['SALDOS'] = result_df['SALDOS'].fillna(0).astype(float)
         result_df['Valor'] = result_df['Valor'].fillna(0).astype(float)
@@ -171,7 +176,7 @@ class DataProcessor:
             result_df, 
             dfs['CASA DE COBRANZA'], 
             *merge_conf['casa_cobranza']
-        )
+         )
         result_df['CASA COBRANZA'] = result_df['CASA COBRANZA'].fillna('SIN CASA DE COBRANZA')
         
         # Fusionar con codeudores
@@ -179,7 +184,7 @@ class DataProcessor:
             result_df, 
             dfs['CODEUDORES'], 
             *merge_conf['codeudores']
-        )
+         )
         result_df['CODEUDOR'] = result_df['CODEUDOR'].fillna('SIN CODEUDOR')
         
         # Eliminar columnas innecesarias
@@ -188,27 +193,41 @@ class DataProcessor:
             'ESTADO_EMPLEADO', 'CEDULA_FS', 'CEDULA_FS_x', 'CEDULA_ARP_x',
             'CEDULA_FS_y', 'FACTURA_FS', 'CEDULA_ARP', 'CEDULA_ARP_y',
             'FACTURA_ARP', 'SALDO_FS', 'SALDO_ARP', 'CENTRO_COSTO_FS','CENTRO_COSTO_ARP',
-        ]
+         ]
         
+        # Eliminar columnas que no existen en el DataFrame
         result_df = result_df.drop(columns=[col for col in columns_to_drop if col in result_df.columns])
         print(result_df)
         
+        # Renombrar columnas finales
         result_df = result_df.rename(columns={'FACTURA FINAL': 'Documento Cartera','CENTRO COSTO': 'C. Costo',
                                               'SALDOS':'Valor Aplicar','CASA COBRANZA': 'Casa cobranza',
-                                              'EMPLEADO': 'Empleado',
+                                              'EMPLEADO': 'Empleado','CANTIDAD CUENTAS ARP': 'Cuentas ARP',
+                                              'CANTIDAD CUENTAS FS': 'Cuentas FS'
                                               })
+        # Asegurarse de que las columnas estén en el orden correcto
         condiciones = [
            result_df['Casa cobranza'] != 'SIN CASA DE COBRANZA',
            result_df['CODEUDOR'] != 'SIN CODEUDOR',
            result_df['VALIDACION ULTIMO SALDO'] == 'pago total'
            ]
+        # Define los valores a asignar según las condiciones
         valores = [
            result_df['Casa cobranza'],
-            'Codeudor',
+            'Codeudor:'+ result_df['CODEUDOR'],
             'Pago total'
-        ]
+         ]
         
+        # Asigna la novedad según las condiciones
         result_df['Novedad'] = np.select(condiciones, valores, default='Sin novedad')
+        mascara_sin_cartera_y_codeudor = (
+        (result_df['Documento Cartera'] == 'SIN CARTERA') &
+        (result_df['Novedad'].str.contains('Codeudor:')))
+
+       # Extrae el valor del codeudor desde la novedad
+        result_df.loc[mascara_sin_cartera_y_codeudor, 'Documento Cartera'] = (
+        result_df.loc[mascara_sin_cartera_y_codeudor, 'Novedad']
+       .str.extract(r'Codeudor:\s*(\S+)')[0])
         
         condiciones_empresa = [
          # Caso 1: Documento cartera NO es 'SIN CARTERA' y empieza con 'DF'
@@ -222,20 +241,22 @@ class DataProcessor:
     
          # Caso 4: Documento cartera es 'SIN CARTERA', CODEUDOR no empieza con 'DF'
           (result_df['Documento Cartera'] == 'SIN CARTERA') & (result_df['CODEUDOR'] != 'SIN CODEUDOR') & ~result_df['CODEUDOR'].str.startswith('DF'),
-]
+           ]
         valores_empresa = [
           'Finansueños',  # Caso 1
           'Arpesod',      # Caso 2
           'Finansueños',  # Caso 3
           'Arpesod'       # Caso 4
-]
+          ]
         
         result_df['Empresa'] = np.select(condiciones_empresa, valores_empresa, default='')
-    
         
-        
-                                         
-      
+        diferencia = result_df['Valor'] - result_df['Valor Aplicar']
+        result_df['Valor Aprovechamientos'] = np.where(
+        (diferencia > 0) & (diferencia <= 10000),
+        diferencia,
+         0  # o np.nan si prefieres que no se muestre nada
+         )
         
         return result_df
     
@@ -246,17 +267,41 @@ class DataProcessor:
         """Guarda los resultados en un archivo Excel con manejo de errores."""
         COLUMN_ORDER_EFECTY = [
         'No', 'Identificación', 'Valor', 'N° de Autorización', 'Fecha',
-        'Documento Cartera', 'C. Costo', 'Empresa', 'Vr a Aplicar',
+        'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
-        'Empleado', 'Novedad'
-    ]
+        'Empleado', 'Novedad','Cuentas ARP', 'Cuentas FS','VALIDACION ULTIMO SALDO']
         COLUMN_ORDER_BANCOLOMBIA = [
         'No.', 'Fecha', 'Detalle 1', 'Detalle 2', 'Referencia 1', 'Referencia 2',
         'Valor', 'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
-        'Empleado', 'Novedad'
-    ]
+        'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS','VALIDACION ULTIMO SALDO']
 
+        def resaltar_condicional(row):
+          arp = row['Cuentas ARP']
+          fs = row['Cuentas FS']
+    
+         # Condiciones de resaltado
+          if (arp >= 2) or (fs >= 2):
+            return ['background-color: lightcoral', 'background-color: lightcoral']
+          elif arp == 1 and fs == 1:
+            return ['background-color: lightcoral', 'background-color: lightcoral']
+          else:
+            return [''] *len(row)
+        
+        def resaltar_empleados_y_duplicados(df):
+        # Crear un DataFrame de estilos vacío
+          styles = pd.DataFrame('', index=df.index, columns=df.columns)
+        
+        # Resaltar celda donde Empleado == 'SI'
+          empleado_mask = df['Empleado'].str.upper().str.strip() == 'SI'
+          styles.loc[empleado_mask, 'Empleado'] = 'background-color: lightblue'
+        
+        # Resaltar documentos de cartera duplicados
+          dup_mask = df.duplicated('Documento Cartera', keep=False) & (df['Documento Cartera'] != 'SIN CARTERA')
+          styles.loc[dup_mask, 'Documento Cartera'] = 'background-color: yellow'
+        
+          return styles
+        
         def limpiar_referencia(valor):
             try:
                 if pd.isnull(valor) or valor == '':
@@ -264,7 +309,6 @@ class DataProcessor:
                 return str(int(float(valor)))
             except (ValueError, TypeError):
                 return ''
-
         try:
             # Limpiar campo 'Referencia 2' si existe en el DataFrame de Bancolombia
             if 'Referencia 2' in df_bancolombia.columns:
@@ -272,11 +316,19 @@ class DataProcessor:
             
             df_efecty = df_efecty.reindex(columns=COLUMN_ORDER_EFECTY)
             df_bancolombia = df_bancolombia.reindex(columns=COLUMN_ORDER_BANCOLOMBIA)
+            
+            styled_efecty = (df_efecty.style
+                         .apply(resaltar_condicional, axis=1, subset=['Cuentas ARP', 'Cuentas FS'])
+                         .apply(resaltar_empleados_y_duplicados, axis=None))
+        
+            styled_bancolombia = (df_bancolombia.style
+                             .apply(resaltar_condicional, axis=1, subset=['Cuentas ARP', 'Cuentas FS'])
+                             .apply(resaltar_empleados_y_duplicados, axis=None))
 
             # Escribir ambos DataFrames a un archivo Excel
             with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-                df_bancolombia.to_excel(writer, sheet_name='Bancolombia', index=False)
-                df_efecty.to_excel(writer, sheet_name='Efecty', index=False)
+                styled_bancolombia.to_excel(writer, sheet_name='Bancolombia', index=False)
+                styled_efecty.to_excel(writer, sheet_name='Efecty', index=False)
 
             return True
         except Exception as e:
