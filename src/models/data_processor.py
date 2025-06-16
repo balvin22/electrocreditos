@@ -202,7 +202,7 @@ class DataProcessor:
         
         # Renombrar columnas finales
         result_df = result_df.rename(columns={'FACTURA FINAL': 'Documento Cartera','CENTRO COSTO': 'C. Costo',
-                                              'SALDOS':'Valor Aplicar','CASA COBRANZA': 'Casa cobranza',
+                                              'CASA COBRANZA': 'Casa cobranza',
                                               'EMPLEADO': 'Empleado','CANTIDAD CUENTAS ARP': 'Cuentas ARP',
                                               'CANTIDAD CUENTAS FS': 'Cuentas FS'
                                               })
@@ -253,12 +253,28 @@ class DataProcessor:
         # Asigna la columna 'Empresa' según las condiciones
         result_df['Empresa'] = np.select(condiciones_empresa, valores_empresa, default='')
         
-        diferencia = result_df['Valor'] - result_df['Valor Aplicar']
+        
+        result_df['Valor Aplicar'] = np.where(
+           (result_df['VALIDACION ULTIMO SALDO'] == 'pago total') & (result_df['SALDOS'] != 0),
+           result_df['SALDOS'],
+           result_df['Valor']
+           )
+        
+        # Calcular el valor de anticipos
+        diferencia_aprovechamiento= result_df['Valor'] - result_df['SALDOS']
         result_df['Valor Aprovechamientos'] = np.where(
-        (diferencia > 0) & (diferencia <= 10000),
-        diferencia,
-         0  # o np.nan si prefieres que no se muestre nada
+        (diferencia_aprovechamiento > 0) & (diferencia_aprovechamiento <= 10000),
+        diferencia_aprovechamiento,
+         0  
          )
+        
+        # Calcular el valor de anticipos
+        diferencia_anticipo = result_df['Valor'] -result_df['Valor Aplicar']
+        result_df['Valor Anticipos'] = np.where(
+            diferencia_anticipo >= 10000,
+            diferencia_anticipo,0
+        )
+        
         return result_df
     
     # Guardar resultados en un archivo Excel con formato y resaltado condicional
@@ -269,12 +285,12 @@ class DataProcessor:
         'No', 'Identificación', 'Valor', 'N° de Autorización', 'Fecha',
         'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
-        'Empleado', 'Novedad','Cuentas ARP', 'Cuentas FS','VALIDACION ULTIMO SALDO']
+        'Empleado', 'Novedad','Cuentas ARP', 'Cuentas FS','SALDOS','VALIDACION ULTIMO SALDO']
         COLUMN_ORDER_BANCOLOMBIA = [
         'No.', 'Fecha', 'Detalle 1', 'Detalle 2', 'Referencia 1', 'Referencia 2',
         'Valor', 'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
-        'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS','VALIDACION ULTIMO SALDO']
+        'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS','SALDOS','VALIDACION ULTIMO SALDO']
 
         def resaltar_condicional(row):
           arp = row['Cuentas ARP']
