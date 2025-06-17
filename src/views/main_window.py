@@ -6,7 +6,7 @@ from models.data_models import AppConfig
 class MainWindow:
     def __init__(self, root, controller):
         self.root = root
-        self.controller = controller
+        self.financiero_controller = controller
         self.config = AppConfig()
         self.setup_ui()
         
@@ -55,33 +55,47 @@ class MainWindow:
         )
         self.desc_label.pack(pady=(0, 30))
         
-        # Botón para seleccionar archivo
-        self.select_button = ttk.Button(
-            self.main_frame,
-            text="Seleccionar Archivo Excel",
-            command=self.controller.select_file,
+        
+        # Frame para contener los botones en una disposición horizontal
+        self.buttons_frame = ttk.Frame(self.main_frame)
+        self.buttons_frame.pack(pady=(0, 20))
+        
+        # Primer botón de acción
+        self.action1_button = ttk.Button(
+            self.buttons_frame,
+            text="Reporte Financiero",
+            command=self.financiero_controller.select_file,  # Puedes cambiar esto a la acción específica
             style='Accent.TButton'
         )
-        self.select_button.pack(pady=(0, 20), ipadx=10, ipady=5)
+        self.action1_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=5)
         
-        # Barra de progreso
+        # Segundo botón de acción
+        self.action2_button = ttk.Button(
+            self.buttons_frame,
+            text="Anticipos Online",
+            command=self.financiero_controller.select_file,  # Debes implementar este método en el controlador
+            style='Accent.TButton'
+        )
+        self.action2_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=5)
+        
+        # Barra de progreso (inicialmente oculta)
         self.progress_bar = ttk.Progressbar(
             self.main_frame,
             orient=tk.HORIZONTAL,
             length=300,
             mode='determinate'
         )
-        self.progress_bar.pack(pady=(0, 20))
+        # No la empaquetamos todavía, se mostrará cuando sea necesario
         
         # Información de estado
         self.status_label = ttk.Label(
             self.main_frame,
-            text="Esperando selección de archivo...",
+            text="Seleccione una opción para comenzar...",
             font=self.label_font,
             background=self.config.bg_color,
             foreground=self.config.text_color
         )
-        self.status_label.pack()
+        self.status_label.pack(pady=(10, 0))
         
         # Configurar estilo para el botón de acento
         self.style.configure('Accent.TButton', font=self.button_font, foreground='white', background=self.config.accent_color)
@@ -106,4 +120,6 @@ class MainWindow:
     def update_progress(self, value):
         """Actualiza la barra de progreso."""
         self.progress_bar['value'] = value
+        self.progress_bar.pack(pady=(0, 20))
         self.root.update_idletasks()
+        

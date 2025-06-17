@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 @dataclass
 class AppConfig:
@@ -12,7 +12,7 @@ class AppConfig:
     output_filename: str = "reporte_financiero.xlsx"
 
 @dataclass
-class DataProcessingConfig:
+class FinancieroProcessingConfig:
     required_sheets: List[str] = None
     sheet_columns: Dict[str, Dict[str, List[str]]] = None
     rename_columns: Dict[str, Dict[str, str]] = None
@@ -62,5 +62,41 @@ class DataProcessingConfig:
                     'ac_arp': ('Referencia 1', 'CEDULA_ARP'),
                     'casa_cobranza': ('FACTURA FINAL', 'FACTURA'),
                     'codeudores': ('Referencia 1', 'DOCUMENTO_CODEUDOR')
+                }
+            }
+            
+            
+@dataclass
+class AnticiposConfig:
+    required_sheets: List[str] = None
+    sheet_columns: Dict[str, List[str]] = None
+    rename_columns: Dict[str, str] = None
+    output_filename: str = "reporte_anticipos.xlsx"
+
+    def __post_init__(self):
+        if self.required_sheets is None:
+            self.required_sheets = ['ONLINE','AC FS','AC ARP']
+
+        if self.sheet_columns is None:
+            self.sheet_columns = {
+                'ONLINE': ['MCNTIPCRU1', 'MCNNUMCRU1', 'MCNVINCULA', 'VINNOMBRE','SALDODOC',],
+                'AC FS': ['cobra', 'ccosto','FACTURA','CEDULA'],
+                'AC ARP': ['cobra', 'ccosto','FACTURA','CEDULA']
+            }
+
+        if self.rename_columns is None:
+            self.rename_columns = {
+                'ONLINE':{'MCNTIPCRU1':'TIPO_RECIBO','MCNNUMCRU1':'No','MCNVINCULA':'CEDULA','VINNOMBRE':'NOMBRE','SALDODOC':'VALOR'},
+                'AC FS':{'cobra':'ZONA_COBRADOR','ccosto':'CENTRO_COSTO'},
+                'AC ARP':{'cobra':'ZONA_COBRADOR','ccosto':'CENTRO_COSTO'}
+            
+            } 
+        if self.merge_config is None:
+            self.merge_config = {
+                'ARPESOD':{
+                    'ac_arp':('CEDULA','CEDULA')
+                },
+                'FINANSUEÑOS':{
+                    'ac_fs':('CEDULA','CEDULA')
                 }
             }
