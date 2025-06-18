@@ -4,9 +4,10 @@ from tkinter.font import Font
 from models.data_models import AppConfig
 
 class MainWindow:
-    def __init__(self, root, controller):
+    def __init__(self, root, controller_financiero,controller_anticipos):
         self.root = root
-        self.financiero_controller = controller
+        self.financiero_controller = controller_financiero
+        self.anticipos_controller = controller_anticipos
         self.config = AppConfig()
         self.setup_ui()
         
@@ -73,7 +74,7 @@ class MainWindow:
         self.action2_button = ttk.Button(
             self.buttons_frame,
             text="Anticipos Online",
-            command=self.financiero_controller.select_file,  # Debes implementar este método en el controlador
+            command=self.anticipos_controller.select_file,  # Debes implementar este método en el controlador
             style='Accent.TButton'
         )
         self.action2_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=5)

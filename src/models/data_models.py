@@ -71,6 +71,7 @@ class AnticiposConfig:
     required_sheets: List[str] = None
     sheet_columns: Dict[str, List[str]] = None
     rename_columns: Dict[str, str] = None
+    merge_config: Dict[str, Dict[str, str]] = None
     output_filename: str = "reporte_anticipos.xlsx"
 
     def __post_init__(self):
@@ -87,8 +88,8 @@ class AnticiposConfig:
         if self.rename_columns is None:
             self.rename_columns = {
                 'ONLINE':{'MCNTIPCRU1':'TIPO_RECIBO','MCNNUMCRU1':'No','MCNVINCULA':'CEDULA','VINNOMBRE':'NOMBRE','SALDODOC':'VALOR'},
-                'AC FS':{'cobra':'ZONA_COBRADOR','ccosto':'CENTRO_COSTO'},
-                'AC ARP':{'cobra':'ZONA_COBRADOR','ccosto':'CENTRO_COSTO'}
+                'AC FS':{'cobra':'ZONA_COBRADOR_FS','ccosto':'CENTRO_COSTO_FS','FACTURA':'FACTURA_FS'},
+                'AC ARP':{'cobra':'ZONA_COBRADOR_ARP','ccosto':'CENTRO_COSTO_ARP','FACTURA':'FACTURA_ARP'}
             
             } 
         if self.merge_config is None:
