@@ -64,7 +64,7 @@ class MainWindow:
         # Primer botón de acción
         self.action1_button = ttk.Button(
             self.buttons_frame,
-            text="Reporte Financiero",
+            text="Cruce de convenios",
             command=self.financiero_controller.select_file,  # Puedes cambiar esto a la acción específica
             style='Accent.TButton'
         )

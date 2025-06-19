@@ -73,6 +73,8 @@ class AnticiposConfig:
     rename_columns: Dict[str, str] = None
     merge_config: Dict[str, Dict[str, str]] = None
     output_filename: str = "reporte_anticipos.xlsx"
+    column_order_fs: List[str] = None
+    column_order_arp: List[str] = None
 
     def __post_init__(self):
         if self.required_sheets is None:
@@ -81,17 +83,34 @@ class AnticiposConfig:
         if self.sheet_columns is None:
             self.sheet_columns = {
                 'ONLINE': ['MCNTIPCRU1', 'MCNNUMCRU1', 'MCNVINCULA', 'VINNOMBRE','SALDODOC',],
-                'AC FS': ['cobra', 'ccosto','FACTURA','CEDULA'],
-                'AC ARP': ['cobra', 'ccosto','FACTURA','CEDULA']
+                'AC FS': ['cobra', 'ccosto','FACTURA','CEDULA','saldofac'],
+                'AC ARP': ['cobra', 'ccosto','FACTURA','CEDULA','saldofac']
             }
 
         if self.rename_columns is None:
             self.rename_columns = {
-                'ONLINE':{'MCNTIPCRU1':'TIPO_RECIBO','MCNNUMCRU1':'No','MCNVINCULA':'CEDULA','VINNOMBRE':'NOMBRE','SALDODOC':'VALOR'},
-                'AC FS':{'cobra':'ZONA_COBRADOR_FS','ccosto':'CENTRO_COSTO_FS','FACTURA':'FACTURA_FS'},
-                'AC ARP':{'cobra':'ZONA_COBRADOR_ARP','ccosto':'CENTRO_COSTO_ARP','FACTURA':'FACTURA_ARP'}
-            
-            } 
+                'ONLINE': {
+                    'MCNTIPCRU1': 'TIPO_RECIBO',
+                    'MCNNUMCRU1': 'No',
+                    'MCNVINCULA': 'CEDULA',
+                    'VINNOMBRE': 'NOMBRE',
+                    'SALDODOC': 'VALOR'
+                },
+                'AC FS': {
+                    'saldofac':'ULTIMO_SALDO_FS',
+                    'cobra': 'ZONA_COBRADOR_FS',
+                    'ccosto': 'CENTRO_COSTO_FS',
+                    'FACTURA': 'FACTURA_FS',
+                    'CEDULA': 'CEDULA'  
+                },
+                'AC ARP': {
+                    'saldofac':'ULTIMO_SALDO_ARP',
+                    'cobra': 'ZONA_COBRADOR_ARP',
+                    'ccosto': 'CENTRO_COSTO_ARP',
+                    'FACTURA': 'FACTURA_ARP',
+                    'CEDULA': 'CEDULA'  
+                }
+            }
         if self.merge_config is None:
             self.merge_config = {
                 'ARPESOD':{
@@ -101,3 +120,17 @@ class AnticiposConfig:
                     'ac_fs':('CEDULA','CEDULA')
                 }
             }
+        if self.column_order_fs is None:
+            self.column_order_fs = [
+                'ITEM',  'TIPO_RECIBO', 'No', 'CEDULA', 'NOMBRE', 'CENTRO_COSTO_FS', 
+                'VALOR', 'FACTURA_FS', 'ZONA_COBRADOR_FS','OBSERVACIONES','CUENTAS_FS',
+                'ULTIMO_SALDO_FS','VALOR_POSITIVO','RESTA_SALDO'
+            ]
+
+        if self.column_order_arp is None:
+            self.column_order_arp = [
+                'ITEM',  'TIPO_RECIBO', 'No', 'CEDULA', 'NOMBRE', 'CENTRO_COSTO_ARP', 
+                'VALOR', 'FACTURA_ARP', 'ZONA_COBRADOR_ARP','OBSERVACIONES','CUENTAS_ARP',
+                'ULTIMO_SALDO_ARP','VALOR_POSITIVO','RESTA_SALDO'
+            ]
+            
