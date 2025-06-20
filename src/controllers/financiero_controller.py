@@ -3,7 +3,7 @@ from tkinter import filedialog, messagebox
 from src.models.financiero_processor import FinancieroProcessor  # Cambiado a import absoluto
 
 
-class MainController:
+class FinancieroController:
     def __init__(self, view):
         self.view = view
         self.data_processor = FinancieroProcessor()

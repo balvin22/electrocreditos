@@ -8,7 +8,7 @@ class AnticiposOnlineProcessor:
         self.config = config if config else AnticiposConfig()
         
     def validate_input_file(self, file_path:str) -> bool:
-        # ... (este método se queda igual) ...
+        
         try:
             with pd.ExcelFile(file_path) as xls:
                 sheets = xls.sheet_names
@@ -38,7 +38,7 @@ class AnticiposOnlineProcessor:
 
     def save_formatted_excel(self, final_df: pd.DataFrame, output_filename: str):
         try:
-            # --- DIVISIÓN DE DATOS (se mantiene igual) ---
+            
             df_finansuenos = final_df[pd.notna(final_df['FACTURA_FS'])].copy()
             df_arpesod = final_df[pd.notna(final_df['FACTURA_ARP'])].copy()
             df_sin_cartera = final_df[(pd.isna(final_df['FACTURA_FS'])) & (pd.isna(final_df['FACTURA_ARP']))].copy()
@@ -50,7 +50,7 @@ class AnticiposOnlineProcessor:
             cols_sin_cartera = base_cols + ['CUENTAS_FS', 'CUENTAS_ARP', 'OBSERVACIONES']
             df_sin_cartera_final = df_sin_cartera.reindex(columns=cols_sin_cartera)
             
-            # --- IDENTIFICACIÓN DE DUPLICADOS (se mantiene igual) ---
+            
             dup_cedulas_fs = set(df_finansuenos_final[df_finansuenos_final.duplicated(subset=['CEDULA'], keep=False)]['CEDULA'])
             dup_facturas_fs = set(df_finansuenos_final[df_finansuenos_final.duplicated(subset=['FACTURA_FS'], keep=False)]['FACTURA_FS'])
             dup_cedulas_arp = set(df_arpesod_final[df_arpesod_final.duplicated(subset=['CEDULA'], keep=False)]['CEDULA'])
@@ -62,13 +62,12 @@ class AnticiposOnlineProcessor:
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
                     worksheet = writer.sheets[sheet_name]
 
-                    # --- DEFINICIÓN DE ESTILOS DE RELLENO (con adición) ---
+                    
                     light_red_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
                     yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-                    # NUEVO: DEFINICIÓN DE ESTILO AZUL
                     blue_fill = PatternFill(start_color="BDD7EE", end_color="BDD7EE", fill_type="solid")
                     
-                    # Estilos de cabecera y bordes (se mantienen igual)
+                    
                     header_font = Font(bold=True, color="FFFFFF", name='Calibri')
                     header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
                     header_alignment = Alignment(horizontal='center', vertical='center')
@@ -80,12 +79,12 @@ class AnticiposOnlineProcessor:
                     for cell in worksheet[1]: cell.font = header_font; cell.fill = header_fill; cell.alignment = header_alignment; cell.border = cell_border
                     
                     for row_idx, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), 2):
-                        # Regla 1: 'PAGO TOTAL' pinta toda la fila de amarillo
+                        
                         if col_indices.get('OBSERVACIONES') and row[col_indices['OBSERVACIONES'] - 1] == 'PAGO TOTAL':
                             for cell in worksheet[row_idx]:
                                 cell.fill = yellow_fill
 
-                        # NUEVA REGLA: 'REVISAR TIENE 2 CARTERAS' pinta solo la celda de azul
+                        
                         elif col_indices.get('OBSERVACIONES') and row[col_indices['OBSERVACIONES'] - 1] == 'REVISAR TIENE 2 CARTERAS':
                             worksheet.cell(row=row_idx, column=col_indices['OBSERVACIONES']).fill = blue_fill
                         

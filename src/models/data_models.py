@@ -4,7 +4,7 @@ from typing import Dict, List
 @dataclass
 class AppConfig:
     title: str = "Procesador de Reportes Financieros"
-    geometry: str = "700x400"
+    geometry: str = "900x450"
     bg_color: str = "#f0f0f0"
     accent_color: str = "#4b6cb7"
     secondary_color: str = "#2d3747"
@@ -18,6 +18,7 @@ class FinancieroProcessingConfig:
     rename_columns: Dict[str, Dict[str, str]] = None
     merge_config: Dict[str, Dict] = None
     output_filename: str = "reporte_financiero.xlsx"
+    
 
     def __post_init__(self):
         if self.required_sheets is None:
@@ -64,12 +65,26 @@ class FinancieroProcessingConfig:
                     'codeudores': ('Referencia 1', 'DOCUMENTO_CODEUDOR')
                 }
             }
+        # if self.column_order_efecty is None:
+        #     self.columnn_order_efecty =[
+        #         'No', 'Identificación', 'Valor', 'N° de Autorización', 'Fecha',
+        #         'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
+        #         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
+        #         'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS', 'SALDOS', 'VALIDACION ULTIMO SALDO'
+        #     ]
+        # if self.column_order_bancolombia is None:
+        #     self.column_order_bancolomnia = [
+        #         'No.', 'Fecha', 'Detalle 1', 'Detalle 2', 'Referencia 1', 'Referencia 2',
+        #         'Valor', 'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
+        #         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
+        #         'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS', 'SALDOS', 'VALIDACION ULTIMO SALDO'
+        #     ]        
             
             
 @dataclass
 class AnticiposConfig:
     required_sheets: List[str] = None
-    sheet_columns: Dict[str, List[str]] = None
+    sheet_columns: Dict[str, List[str]] = None                                                                                                                                                                   
     rename_columns: Dict[str, str] = None
     merge_config: Dict[str, Dict[str, str]] = None
     output_filename: str = "reporte_anticipos.xlsx"
@@ -109,15 +124,6 @@ class AnticiposConfig:
                     'ccosto': 'CENTRO_COSTO_ARP',
                     'FACTURA': 'FACTURA_ARP',
                     'CEDULA': 'CEDULA'  
-                }
-            }
-        if self.merge_config is None:
-            self.merge_config = {
-                'ARPESOD':{
-                    'ac_arp':('CEDULA','CEDULA')
-                },
-                'FINANSUEÑOS':{
-                    'ac_fs':('CEDULA','CEDULA')
                 }
             }
         if self.column_order_fs is None:

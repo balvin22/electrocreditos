@@ -5,8 +5,8 @@ from pathlib import Path
 # Añade el directorio src al path de Python
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from src.controllers.financiero_controller import MainController as FinancieroController
-from src.controllers.anticipos_online_controller import MainController as AnticiposController
+from src.controllers.financiero_controller import FinancieroController
+from src.controllers.anticipos_online_controller import AnticiposController
 from views.main_window import MainWindow
 
 def main():

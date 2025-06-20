@@ -4,7 +4,7 @@ import pandas as pd
 from tkinter import filedialog, messagebox
 from src.models.anticipos_online_processor import AnticiposOnlineProcessor
 
-class MainController:
+class AnticiposController:
     def __init__(self,view):
         self.view = view
         self.data_processor = AnticiposOnlineProcessor()
@@ -68,29 +68,20 @@ class MainController:
             final_df['RESTA_SALDO'] = resta_fs.fillna(resta_arp)
             
             condiciones = [
-                # Condición 1: ¿Tiene valor en AMBAS columnas de factura?
+                
                 (pd.notna(final_df['FACTURA_FS'])) & (pd.notna(final_df['FACTURA_ARP'])),
-    
-                # Condición 2: ¿El saldo restante es <= 0?
                 (final_df['RESTA_SALDO'] <= 0),
-    
-                # Condición 3: ¿Tiene factura SOLO en FS (en FS y NO en ARP)?
                 (pd.notna(final_df['FACTURA_FS'])) & (pd.isna(final_df['FACTURA_ARP'])),
-    
-                # Condición 4: ¿Tiene factura SOLO en ARP (NO en FS y sí en ARP)?
                 (pd.isna(final_df['FACTURA_FS'])) & (pd.notna(final_df['FACTURA_ARP']))
                 ]
 
-            #2. Definimos los resultados para cada condición, en el mismo orden.
             opciones = [
                 'REVISAR TIENE 2 CARTERAS',
                 'PAGO TOTAL',
                 'CARTERA EN FINANSUEÑOS',
                 'CARTERA EN ARPESOD'
                 ]
-
-            # 3. Usamos np.select para crear la columna 'OBSERVACIONES'. 
-            #Si ninguna condición se cumple, se usará el valor 'default'.
+            
             final_df['OBSERVACIONES'] = np.select(condiciones, opciones, default='REVISAR SI ES CODEUDOR') 
         
             self.view.update_status("Solicitando ubicación para guardar...")
