@@ -122,9 +122,8 @@ class FinancieroProcessor:
             merge_conf['ac_fs'][0], 
             'CEDULA_FS'
         )
-        # Asegurarse de que la columna 'CANTIDAD CUENTAS FS' sea de tipo int
         result_df['CANTIDAD CUENTAS FS'] = result_df['CANTIDAD CUENTAS FS'].fillna(0).astype(int)
-        
+
         # Contar cuentas ARP
         conteo_arp = self.count_accounts(dfs['AC ARP'], 'CEDULA_ARP', 'CANTIDAD CUENTAS ARP')
         result_df = self.merge_dataframes(
@@ -133,24 +132,37 @@ class FinancieroProcessor:
             merge_conf['ac_arp'][0], 
             'CEDULA_ARP'
         )
-        # Asegurarse de que la columna 'CANTIDAD CUENTAS ARP' sea de tipo int
         result_df['CANTIDAD CUENTAS ARP'] = result_df['CANTIDAD CUENTAS ARP'].fillna(0).astype(int)
-        
-        # Determinar factura final
-        result_df['FACTURA FINAL'] = np.where(
+
+        # --- INICIO DEL BLOQUE LÓGICO CORREGIDO ---
+
+        # 1. AHORA SÍ, calculamos el total de cuentas
+        result_df['TOTAL_CUENTAS'] = result_df['CANTIDAD CUENTAS FS'] + result_df['CANTIDAD CUENTAS ARP']
+
+        # 2. Determinamos la factura final con la lógica de "Mas de una cartera"
+        factura_original = np.where(
             result_df['CARTERA EN FINANSUEÑOS'] != 'SIN CARTERA',
             result_df['CARTERA EN FINANSUEÑOS'],
             result_df['CARTERA EN ARPESOD']
         )
+        result_df['FACTURA FINAL'] = np.where(
+            result_df['TOTAL_CUENTAS'] > 1,
+            'Mas de una cartera',
+            factura_original
+        )
+
+        # 3. Guardamos las columnas originales para identificar cada pago de forma única
+        columnas_pago_original = list(payment_df.columns)
+
+        # 4. Eliminamos las filas duplicadas generadas por el merge, manteniendo la primera (ya corregida)
+        result_df.drop_duplicates(subset=columnas_pago_original, keep='first', inplace=True)
         
-        # Unificar saldos
+        # 5. Preparamos la tabla de saldos para la consulta
         df_fs_saldos = dfs['AC FS'][['FACTURA_FS', 'SALDO_FS','CENTRO_COSTO_FS']].rename(columns={'FACTURA_FS': 'FACTURA', 'SALDO_FS': 'SALDO','CENTRO_COSTO_FS': 'CENTRO COSTO'})
         df_arp_saldos = dfs['AC ARP'][['FACTURA_ARP', 'SALDO_ARP','CENTRO_COSTO_ARP']].rename(columns={'FACTURA_ARP': 'FACTURA', 'SALDO_ARP': 'SALDO', 'CENTRO_COSTO_ARP': 'CENTRO COSTO'})
-       
-        # Unificar los DataFrames de saldos
         df_saldos_unificados = pd.concat([df_fs_saldos, df_arp_saldos], ignore_index=True).drop_duplicates(subset='FACTURA')
-        
-        # Asegurarse de que la columna 'FACTURA FINAL' sea de tipo string para la fusión
+
+        # 6. Fusionamos para traer los saldos al DataFrame ya limpio
         result_df['FACTURA FINAL'] = result_df['FACTURA FINAL'].astype(str)
         result_df = self.merge_dataframes(
             result_df, 
@@ -158,11 +170,17 @@ class FinancieroProcessor:
             'FACTURA FINAL', 
             'FACTURA'
         )
-        # Renombrar y limpiar columnas
+
+        # 7. Renombramos y limpiamos las columnas de saldo y valor
         result_df = result_df.rename(columns={'SALDO': 'SALDOS'})
         result_df['SALDOS'] = result_df['SALDOS'].fillna(0).astype(float)
         result_df['Valor'] = result_df['Valor'].fillna(0).astype(float)
         
+        # 8. Forzamos el saldo a 0 para los casos de "Mas de una cartera", ya que no se puede asignar uno específico
+        result_df.loc[result_df['FACTURA FINAL'] == 'Mas de una cartera', 'SALDOS'] = 0
+        
+        # --- FIN DEL BLOQUE LÓGICO CORREGIDO ---
+
         # Validar saldo final
         result_df['VALIDACION ULTIMO SALDO'] = np.where(
             (result_df['SALDOS'] - result_df['Valor']) <= 0,
@@ -170,13 +188,19 @@ class FinancieroProcessor:
             (result_df['SALDOS'] - result_df['Valor']).astype(str)
         )
         
+        right_key_column = self.config.merge_config[payment_type]['casa_cobranza'][1] 
+        # Creamos una versión sin duplicados de la tabla de casa de cobranza
+        casa_cobranza_sin_duplicados = dfs['CASA DE COBRANZA'].drop_duplicates(subset=[right_key_column])
         # Fusionar con casa de cobranza
         result_df = self.merge_dataframes(
             result_df, 
-            dfs['CASA DE COBRANZA'], 
+            casa_cobranza_sin_duplicados,
             *merge_conf['casa_cobranza']
          )
+
         result_df['CASA COBRANZA'] = result_df['CASA COBRANZA'].fillna('SIN CASA DE COBRANZA')
+    
+        
         
         # Fusionar con codeudores
         result_df = self.merge_dataframes(
@@ -326,6 +350,8 @@ class FinancieroProcessor:
                 return ''
         try:
             # Limpiar campo 'Referencia 2' si existe en el DataFrame de Bancolombia
+            if 'Referencia 1' in df_bancolombia.columns:
+                df_bancolombia['Referencia 1'] = df_bancolombia['Referencia 1'].apply(limpiar_referencia)
             if 'Referencia 2' in df_bancolombia.columns:
                 df_bancolombia['Referencia 2'] = df_bancolombia['Referencia 2'].apply(limpiar_referencia)
             
