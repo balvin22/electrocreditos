@@ -65,21 +65,7 @@ class FinancieroProcessingConfig:
                     'codeudores': ('Referencia 1', 'DOCUMENTO_CODEUDOR')
                 }
             }
-        # if self.column_order_efecty is None:
-        #     self.columnn_order_efecty =[
-        #         'No', 'Identificación', 'Valor', 'N° de Autorización', 'Fecha',
-        #         'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
-        #         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
-        #         'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS', 'SALDOS', 'VALIDACION ULTIMO SALDO'
-        #     ]
-        # if self.column_order_bancolombia is None:
-        #     self.column_order_bancolomnia = [
-        #         'No.', 'Fecha', 'Detalle 1', 'Detalle 2', 'Referencia 1', 'Referencia 2',
-        #         'Valor', 'Documento Cartera', 'C. Costo', 'Empresa', 'Valor Aplicar',
-        #         'Valor Anticipos', 'Valor Aprovechamientos', 'Casa cobranza',
-        #         'Empleado', 'Novedad', 'Cuentas ARP', 'Cuentas FS', 'SALDOS', 'VALIDACION ULTIMO SALDO'
-        #     ]        
-            
+     
             
 @dataclass
 class AnticiposConfig:
