@@ -1,19 +1,20 @@
 import pandas as pd
 import numpy as np
 
-# --- PASO 1: DEFINICIONES INICIALES (Sin cambios) ---
+# --- PASO 1: DEFINICIONES INICIALES ---
 print("--- PASO 1: Definiendo parámetros iniciales ---")
 input_file_path = 'c:/Users/usuario/Desktop/Reporte LV/DATA MARZO FS.TXT'
-ruta_archivo_correcciones = 'c:/Users/usuario/Desktop/Reporte LV/Cédulas a revisar.xlsx' # Asegúrate que el nombre sea el correcto
+ruta_archivo_correcciones = 'c:/Users/usuario/Desktop/Reporte LV/Cédulas a revisar.xlsx'
 
+# Definición limpia de las posiciones y nombres para evitar caracteres ocultos
 colspecs = [
-    (0, 1),(1, 12),(30, 75),(12, 30),(76, 84),(84, 92),
-    (92, 94),(107, 109),(109, 110),(188, 199),(199, 210),
-    (210, 221),(221, 232),(232, 243),(243, 246),(246, 249),
-    (249, 252),(263, 271),(271, 279),(577, 597),(625, 685),
-    (685, 745),(445, 457),(75, 76),(185, 188),(105, 106),
-    (110, 118),(118, 120),(120, 128),(137, 138),(138, 146),
-    (252, 255),(255, 263)
+    (0, 1), (1, 12), (30, 75), (12, 30), (76, 84), (84, 92),
+    (92, 94), (107, 109), (109, 110), (188, 199), (199, 210),
+    (210, 221), (221, 232), (232, 243), (243, 246), (246, 249),
+    (249, 252), (263, 271), (271, 279), (577, 597), (625, 685),
+    (685, 745), (445, 457), (75, 76), (185, 188), (105, 106),
+    (110, 118), (118, 120), (120, 128), (137, 138), (138, 146),
+    (252, 255), (255, 263)
 ]
 names = [
     "TIPO DE IDENTIFICACION", "NUMERO DE IDENTIFICACION", "NOMBRE COMPLETO",
@@ -25,126 +26,150 @@ names = [
     "DIRECCION DE CORRESPONDENCIA", "CORREO ELECTRONICO", "CELULAR",
     "SITUACION DEL TITULAR", "EDAD DE MORA", "FORMA DE PAGO",
     "FECHA ESTADO ORIGEN", "ESTADO DE LA CUENTA", "FECHA ESTADO DE LA CUENTA",
-    "ADJETIVO", "FECHA DE ADJETIVO","CLAUSULA DE PERMANENCIA","FECHA CLAUSULA DE PERMANENCIA"
+    "ADJETIVO", "FECHA DE ADJETIVO", "CLAUSULA DE PERMANENCIA", "FECHA CLAUSULA DE PERMANENCIA"
 ]
 
 try:
-    # --- PASO 2: LECTURA Y CARGA INICIAL DEL ARCHIVO PRINCIPAL ---
-    print("\n--- PASO 2: Leyendo archivo principal (DATA MARZO FS.TXT) ---")
+    # --- PASO 2: LECTURA Y PREPARACIÓN INICIAL ---
+    print("\n--- PASO 2: Leyendo y preparando el archivo principal ---")
     df = pd.read_fwf(
         input_file_path, colspecs=colspecs, names=names, encoding='latin-1',
         skiprows=1, skipfooter=1, engine='python'
     )
-    if not df.empty:
-        df = df.iloc[:-1]
-    
     df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].astype(str).str.strip()
 
-    # --- PASO 3: CORRECCIONES DESDE ARCHIVO EXCEL (EN ORDEN LÓGICO) ---
-    print("\n--- PASO 3: Corrigiendo y enriqueciendo datos desde archivo Excel ---")
+    # --- PASO 3: CORRECCIONES DE DATOS ---
+    print("\n--- PASO 3: Iniciando correcciones desde archivo Excel ---")
     try:
         # A. Corregir Cédulas
         print("   A. Corrigiendo 'NUMERO DE IDENTIFICACION'...")
-        df_cedulas_malas = pd.read_excel(ruta_archivo_correcciones, sheet_name='Cedulas a corregir')
-        mapa_correcciones = pd.Series(df_cedulas_malas['CEDULA CORRECTA'].astype(str).str.strip().values, index=df_cedulas_malas['CEDULA MAL'].astype(str).str.strip()).to_dict()
-        df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].replace(mapa_correcciones)
+        df_cedulas = pd.read_excel(ruta_archivo_correcciones, sheet_name='Cedulas a corregir')
+        mapa_cedulas = pd.Series(df_cedulas['CEDULA CORRECTA'].astype(str).str.strip().values, index=df_cedulas['CEDULA MAL'].astype(str).str.strip()).to_dict()
+        df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].replace(mapa_cedulas)
 
-        # B. Actualizar campos que dicen 'CORREGIR'
-        print("   B. Actualizando campos 'CORREGIR' desde la hoja 'Vinculado'...")
-        df_vinculado = pd.read_excel(ruta_archivo_correcciones, sheet_name='Vinculado')
-        df_vinculado = df_vinculado.set_index(df_vinculado['CODIGO'].astype(str).str.strip())
-        mapa_columnas_vinc = {'NOMBRE COMPLETO':'NOMBRE', 'DIRECCION DE CORRESPONDENCIA':'DIRECCI', 'CORREO ELECTRONICO':'VINEMAIL', 'CELULAR':'TELEFONO'}
-        for col_df, col_vinc in mapa_columnas_vinc.items():
+        # B. Actualizar campos 'CORREGIR'
+        print("   B. Actualizando campos con 'CORREGIR' desde 'Vinculado'...")
+        df_vinculado = pd.read_excel(ruta_archivo_correcciones, sheet_name='Vinculado').set_index(pd.read_excel(ruta_archivo_correcciones, sheet_name='Vinculado')['CODIGO'].astype(str).str.strip())
+        mapa_vinc = {'NOMBRE COMPLETO':'NOMBRE', 'DIRECCION DE CORRESPONDENCIA':'DIRECCI', 'CORREO ELECTRONICO':'VINEMAIL', 'CELULAR':'TELEFONO'}
+        for col_df, col_vinc in mapa_vinc.items():
             mascara = df[col_df].astype(str).str.strip().str.contains('CORREGIR', case=False, na=False)
             if mascara.any():
-                for index in df[mascara].index:
-                    id_a_buscar = df.at[index, 'NUMERO DE IDENTIFICACION']
-                    if id_a_buscar in df_vinculado.index:
-                        df.at[index, col_df] = df_vinculado.at[id_a_buscar, col_vinc]
+                ids_a_buscar = df.loc[mascara, 'NUMERO DE IDENTIFICACION']
+                valores_nuevos = ids_a_buscar.map(df_vinculado[col_vinc])
+                df[col_df] = valores_nuevos.combine_first(df[col_df])
 
         # C. Actualizar Tipos de Identificación
         print("   C. Actualizando 'TIPO DE IDENTIFICACION'...")
-        df['TIPO DE IDENTIFICACION'] = 1 # Valor por defecto
+        df['TIPO DE IDENTIFICACION'] = 1
         df_tipos = pd.read_excel(ruta_archivo_correcciones, sheet_name='Tipos de identificacion')
-        # *** CORRECCIÓN DEL ERROR DE NOMBRE DE COLUMNA ***
-        columna_con_el_tipo_nuevo = 'CODIGO DATA' 
-        mapa_tipos = pd.Series(df_tipos[columna_con_el_tipo_nuevo].values, index=df_tipos['CEDULA CORRECTA'].astype(str).str.strip()).to_dict()
-        nuevos_tipos = df['NUMERO DE IDENTIFICACION'].map(mapa_tipos)
-        df['TIPO DE IDENTIFICACION'].update(nuevos_tipos.dropna())
+        mapa_tipos = pd.Series(df_tipos['CODIGO DATA'].values, index=df_tipos['CEDULA CORRECTA'].astype(str).str.strip()).to_dict()
+        df['TIPO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].map(mapa_tipos).combine_first(df['TIPO DE IDENTIFICACION'])
         
         print("Correcciones desde Excel completadas.")
     except Exception as e:
         print(f"   ¡ERROR DURANTE CORRECCIONES EXCEL! Detalle: {e}")
 
-    # --- PASO 4: PROCESAMIENTO DE FNZ001 ---
-    print("\n--- PASO 4: Procesando datos de FNZ001 para actualizar 'VALOR INICIAL' ---")
+    # --- PASO 4: ACTUALIZACIONES DESDE FNZ001 y R05 ---
+    print("\n--- PASO 4: Actualizando datos desde hojas FNZ001 y R05 ---")
     try:
         df['NUMERO DE LA CUENTA U OBLIGACION'] = df['NUMERO DE LA CUENTA U OBLIGACION'].astype(str).str.replace(' ', '').str.zfill(18)
         
+        print("   A. Procesando FNZ001 para 'VALOR INICIAL'...")
         df_fnz = pd.read_excel(ruta_archivo_correcciones, sheet_name='FNZ001', usecols=['DSM_TP', 'DSM_NUM', 'VLR_FNZ'])
         df_fnz['llave_base'] = df_fnz['DSM_TP'].astype(str).str.strip() + df_fnz['DSM_NUM'].astype(str).str.strip()
+        tabla_fnz = pd.concat([pd.DataFrame({'FACTURA': df_fnz['llave_base'], 'VALOR': df_fnz['VLR_FNZ']}), pd.DataFrame({'FACTURA': df_fnz['llave_base'] + 'C1', 'VALOR': df_fnz['VLR_FNZ']}), pd.DataFrame({'FACTURA': df_fnz['llave_base'] + 'C2', 'VALOR': df_fnz['VLR_FNZ']})])
+        tabla_fnz['FACTURA'] = tabla_fnz['FACTURA'].astype(str).str.zfill(18)
+        mapa_fnz = pd.Series(tabla_fnz.VALOR.values, index=tabla_fnz.FACTURA).to_dict()
+        df['VALOR INICIAL'] = df['NUMERO DE LA CUENTA U OBLIGACION'].map(mapa_fnz).combine_first(df['VALOR INICIAL'])
         
-        df_base = pd.DataFrame({'FACTURA': df_fnz['llave_base'], 'VALOR': df_fnz['VLR_FNZ']})
-        df_c1 = pd.DataFrame({'FACTURA': df_fnz['llave_base'] + 'C1', 'VALOR': df_fnz['VLR_FNZ']})
-        df_c2 = pd.DataFrame({'FACTURA': df_fnz['llave_base'] + 'C2', 'VALOR': df_fnz['VLR_FNZ']})
+        print("   B. Procesando R05 para 'FECHA DE PAGO'...")
+        df_r05 = pd.read_excel(ruta_archivo_correcciones, sheet_name='R05', usecols=['MCNTIPCRU2', 'MCNNUMCRU2', 'MCNFECHA'])
+        df_r05['FECHA_NUEVA'] = pd.to_datetime(df_r05['MCNFECHA'], format='%d/%m/%Y', errors='coerce').dt.strftime('%Y%m%d')
+        df_r05['llave_base'] = df_r05['MCNTIPCRU2'].astype(str).str.strip() + df_r05['MCNNUMCRU2'].astype(str).str.strip()
+        tabla_r05 = pd.concat([pd.DataFrame({'LLAVE': df_r05['llave_base'], 'FECHA': df_r05['FECHA_NUEVA']}), pd.DataFrame({'LLAVE': df_r05['llave_base'] + 'C1', 'FECHA': df_r05['FECHA_NUEVA']}), pd.DataFrame({'LLAVE': df_r05['llave_base'] + 'C2', 'FECHA': df_r05['FECHA_NUEVA']})]).dropna(subset=['FECHA'])
+        tabla_r05['LLAVE'] = tabla_r05['LLAVE'].astype(str).str.zfill(18)
+        mapa_r05 = pd.Series(tabla_r05.FECHA.values, index=tabla_r05.LLAVE).to_dict()
+        df['FECHA DE PAGO'] = df['NUMERO DE LA CUENTA U OBLIGACION'].map(mapa_r05).combine_first(df['FECHA DE PAGO'])
         
-        tabla_factura_valor = pd.concat([df_base, df_c1, df_c2], ignore_index=True)
-        tabla_factura_valor['FACTURA'] = tabla_factura_valor['FACTURA'].astype(str).str.zfill(18)
-
-        df = pd.merge(df, tabla_factura_valor, left_on='NUMERO DE LA CUENTA U OBLIGACION', right_on='FACTURA', how='left')
-        
-        df['VALOR INICIAL'] = np.where(df['VALOR'].notna(), df['VALOR'], df['VALOR INICIAL'])
-        
-        df = df.drop(columns=['FACTURA', 'VALOR'])
-        print("Actualización de 'VALOR INICIAL' desde FNZ001 completada.")
-        
+        print("Actualizaciones completadas.")
     except Exception as e:
-        print(f"   ¡ERROR! Ocurrió un error al procesar la hoja FNZ001: {e}")
+        print(f"   ¡ERROR! Ocurrió un error al procesar las hojas FNZ001 o R05: {e}")
 
-    # --- PASO 5: LIMPIEZA GENERAL Y VALIDACIONES ---
-    print("\n--- PASO 5: Realizando limpieza general y validaciones ---")
+    # --- PASO 5: LIMPIEZA GENERAL Y VALIDACIONES DE DATOS ---
+    print("\n--- PASO 5: Realizando limpieza y formateo de datos ---")
+    
+    # A. Limpieza de caracteres de texto
     letter_replacements = {'Ñ':'N','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U','Ü':'U','Ÿ':'Y','Â':'A','Ã':'A','š':'S','©':'C','ñ':'N','á':'A','é':'E','í':'I','ó':'O','ú':'U','ü':'U','ÿ':'Y','â':'A','ã':'A'}
     chars_to_remove = ['@','°','|','¬','¡','“','#','$','%','&','/','(',')','=','‘','\\','¿','+','~','´´','´','[','{','^','_','.',':',',',';','<','>','Æ','±']
+    string_cols = df.select_dtypes(include='object').columns.drop('CORREO ELECTRONICO', errors='ignore')
+    for col in string_cols:
+        df[col] = df[col].astype(str)
+        for old, new in letter_replacements.items(): df[col] = df[col].str.replace(old, new, regex=False)
+        for char in chars_to_remove: df[col] = df[col].str.replace(char, '', regex=False)
     
-    # *** CORRECCIÓN DEL ERROR DE TIPO DE DATO (.str) ***
-    for col in df.columns:
-        # Solo aplicar limpieza de texto a columnas que son de tipo 'object' (string)
-        if df[col].dtype == 'object' and col != 'CORREO ELECTRONICO':
-            df[col] = df[col].astype(str) # Aseguramos que sea string
-            for old, new in letter_replacements.items():
-                df[col] = df[col].str.replace(old, new, regex=False)
-            for char in chars_to_remove:
-                df[col] = df[col].str.replace(char, '', regex=False)
-
-    df['FECHA APERTURA'] = df['FECHA APERTURA'].astype(str)
-    df['FECHA VENCIMIENTO'] = df['FECHA VENCIMIENTO'].astype(str)
+    # B. Limpieza y validación de fechas (sin decimales)
+    for col in ["FECHA APERTURA", "FECHA VENCIMIENTO", "FECHA DE PAGO"]:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype('Int64').astype(str)
+    
     condicion_fecha_invalida = df['FECHA VENCIMIENTO'] < df['FECHA APERTURA']
     df.loc[condicion_fecha_invalida, 'FECHA VENCIMIENTO'] = df['FECHA APERTURA']
     
+    mascara_fecha_pago = (df['FECHA DE PAGO'].str.upper().str.contains('NA')) | (df['FECHA DE PAGO'] == '0')
+    df.loc[mascara_fecha_pago, 'FECHA DE PAGO'] = '00000000'
+
+    # C. Limpieza y validación de valores numéricos
     columnas_numericas = ["VALOR INICIAL", "VALOR SALDO DEUDA", "VALOR DISPONIBLE", "V CUOTA MENSUAL", "VALOR SALDO MORA"]
     for col in columnas_numericas:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
         if col != 'VALOR DISPONIBLE':
             df.loc[df[col] < 10000, col] = 0
     df['VALOR DISPONIBLE'] = 0
-    for col in columnas_numericas:
-        df[col] = df[col].astype(int)
+    df[columnas_numericas] = df[columnas_numericas].astype(int)
     print("Limpieza y validaciones completadas.")
 
-    # --- PASO 6: TRANSFORMACIONES Y FORMATEO FINAL ---
-    print("\n--- PASO 6: Aplicando transformaciones y formato final ---")
-    df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].astype(str).str.replace(r'\s+', ' ', regex=True).str.strip().str.upper()
+    # --- PASO 6: FORMATEO FINAL DE TEXTO Y LONGITUD ---
+    print("\n--- PASO 6: Aplicando formato final ---")
     
+    # A. Formato de textos generales
+    df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].astype(str).str.replace(r'\s+', ' ', regex=True).str.strip().str.upper()
     replacements_map = {'1118291452':'FANDINO LAYNE ASTRID', '10255294581':'MARTINEZ MUNOZ JOSE MANUEL', '25559122':'RAMIREZ DE CASTRO MARIA ESTELLA'}
     for id_number, new_name in replacements_map.items():
         df.loc[df['NUMERO DE IDENTIFICACION'] == id_number, 'NOMBRE COMPLETO'] = new_name
     
+    # B. Formato de CIUDAD DE CORRESPONDENCIA
+    col_ciudad = 'CIUDAD CORRESPONDENCIA'
+    df[col_ciudad] = df[col_ciudad].astype(str).fillna('')
+    mascara_reemplazo_ciudad = (df[col_ciudad].str.strip() == '') | (df[col_ciudad].str.strip().str.upper() == 'N/A') | (df[col_ciudad].str.strip() == '0')
+    df.loc[mascara_reemplazo_ciudad, col_ciudad] = 'POPAYAN'
+    
+    # C. Formato de CELULAR
+    col_celular = 'CELULAR'
+    df[col_celular] = df[col_celular].astype(str).str.replace(r'\D', '', regex=True)
+    es_fijo_valido = (df[col_celular].str.len() == 7)
+    es_celular_valido = (df[col_celular].str.len() == 10) & (df[col_celular].str.startswith('3'))
+    df.loc[~(es_fijo_valido | es_celular_valido), col_celular] = '0'
+    
+    # D. Formato de CORREO ELECTRONICO
+    col_email = 'CORREO ELECTRONICO'
+    df[col_email] = df[col_email].astype(str).str.strip()
+    placeholders_a_eliminar = ['CORREGIR', 'PENDIENTE', 'NOTIENE', 'SINC', 'NN@', 'AAA@']
+    for placeholder in placeholders_a_eliminar:
+        df.loc[df[col_email].str.contains(placeholder, case=False, na=False), col_email] = ''
+    email_regex_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    df.loc[~df[col_email].str.match(email_regex_pattern, na=False), col_email] = ''
+    
+    # E. Formatos finales de longitud
+    print("   Aplicando formatos de longitud final...")
     df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].str.ljust(45)
+    df['DIRECCION DE CORRESPONDENCIA'] = df['DIRECCION DE CORRESPONDENCIA'].astype(str).str.ljust(60)
+    df['CIUDAD CORRESPONDENCIA'] = df[col_ciudad].str.ljust(20)
+    df['CORREO ELECTRONICO'] = df[col_email].str.ljust(60)
+    df['CELULAR'] = df[col_celular].str.zfill(12)
     df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].str.zfill(11)
     print("Formato final aplicado.")
 
     # --- PASO 7: GUARDAR ARCHIVO FINAL ---
-    output_filename = "Data_Marzo_Final_Corregido.xlsx"
+    output_filename = "Data_Marzo_Finalisimo.xlsx"
     df.to_excel(output_filename, index=False)
     print(f"\n¡PROCESO COMPLETADO! Se ha generado el archivo final '{output_filename}'.")
 
