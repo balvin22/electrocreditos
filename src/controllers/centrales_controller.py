@@ -1,129 +1,167 @@
 import pandas as pd
+import io
 import numpy as np
 
-# --- PASO 1: DEFINICIONES INICIALES ---
-print("--- PASO 1: Definiendo parámetros iniciales ---")
-input_file_path = 'c:/Users/usuario/Desktop/Reporte LV/DATA MARZO FS.TXT'
-ruta_archivo_correcciones = 'c:/Users/usuario/Desktop/Reporte LV/Cédulas a revisar.xlsx'
+# --- La configuración de columnas que definiste se mantiene igual ---
+configuracion = {
+    "ANALISIS": {
+        "usecols": ["dirección", "barrio", "nomciudad", "totcuotas", "valorcuota", "díasatras", "cuotaspag","cedula"],
+        "rename_map": {
+            "dirección": "Direccion",
+            "barrio": "Barrio",
+            "nomciudad": "Nombre_Ciudad",
+            "totcuotas": "Total_Cuotas",
+            "valorcuota": "Valor_Cuota",
+            "díasatras": "Dias_Atraso",
+            "cuotaspag": "Cuotas_Pagadas",
+            "cedula" : "Cedula_Cliente"
+        }
+    },
+    "R91": {
+        "usecols": ["VINNOMBRE", "VENNOMBRE", "MCDZONA", "MCDVINCULA", "MCDNUMCRU1", "MCDTIPCRU1","VENOMBRE","VENCODIGO",
+                    "COBNOMBRE", "MCDCCOSTO", "CCONOMBRE", "META_INTERES", "DC AL DIA", "DC ATRASO", "META_ATRASO"],
+        "rename_map": {
+            "MCDTIPCRU1": "Tipo_Credito",
+            "MCDNUMCRU1": "Numero_Credito",
+            "MCDVINCULA" : "Cedula_Cliente",
+            "VINNOMBRE": "Nombre_Cliente",
+            "MCDZONA" : "Zona",
+            "COBNOMBRE" : "Nombre_Cobrador",
+            "VENOMBRE" : "Nombre_Vendedor",
+            "VENCODIGO" : "Codigo_Vendedor",
+            "CCONOMBRE" : "Centro_Costos",
+            "MCDCCOSTO" : "Codigo_Centro_Costos",
+            "META_INTERES" : "Interes_Mora",
+            "DC AL DIA" : "DC_Al_Dia",
+            "DC ATRASO" : "DC_Atraso",
+            "META_ATRASO" : "Meta_Atraso"
+        }
+    },
+    "VENCIMIENTOS": {
+        "usecols": ["MCNVINCULA", "VINTELEFO3", "SALDODOC", "VENCE", "VINTELEFON", "MCNCUOCRU1"],
+        "rename_map": {
+            "MCNVINCULA": "Cedula_Cliente",
+            "VINTELEFO3": "Celular",
+            "VINTELEFON" : "Telefono",
+            "SALDODOC": "Saldo_Factura",
+            "MCNCUOCRU1": "Cuota_Vigente",
+            "VENCE": "Fecha_Vencimiento",
+        }
+    },
+}
 
-# Definición limpia de las posiciones y nombres para evitar caracteres ocultos
-colspecs = [
-    (0, 1),(1, 12),(30, 75),(12, 30),(76, 84),(84, 92),
-    (92, 94),(107, 109),(109, 110),(188, 199),(199, 210),
-    (210, 221),(221, 232),(232, 243),(243, 246),(246, 249),
-    (249, 252),(263, 271),(271, 279),(577, 597),(625, 685),
-    (685, 745),(445, 457),(75, 76),(185, 188),(105, 106),
-    (110, 118),(118, 120),(120, 128),(137, 138),(138, 146),
-    (252, 255),(255, 263)
+# --- Lista de archivos a procesar ---
+ruta_base = 'c:/Users/usuario/Desktop/JUNIO/'
+archivos_a_procesar = [
+    ruta_base + "ANALISIS ARP GENERAL 0506INICIAL.XLS",
+    ruta_base + "ANALISIS FNS GENERAL 0506INICIAL.XLS",
+    ruta_base + "R91 ARP JUNIO.XLSX",
+    ruta_base + "R91 FS JUNIO.XLSX",
+    ruta_base + "VENCIMIENTOS ARP JUNIO.XLSX",
+    ruta_base + "VENCIMIENTOS FNS JUNIO.XLSX"
 ]
-names = [
-    "TIPO DE IDENTIFICACION", "NUMERO DE IDENTIFICACION", "NOMBRE COMPLETO",
-    "NUMERO DE LA CUENTA U OBLIGACION", "FECHA APERTURA", "FECHA VENCIMIENTO",
-    "RESPONSABLE", "NOVEDAD", "ESTADO ORIGEN DE LA CUENTA", "VALOR INICIAL",
-    "VALOR SALDO DEUDA", "VALOR DISPONIBLE", "V CUOTA MENSUAL",
-    "VALOR SALDO MORA", "TOTAL CUOTAS", "CUOTAS CANCELADAS", "CUOTAS EN MORA",
-    "FECHA LIMITE DE PAGO", "FECHA DE PAGO", "CIUDAD CORRESPONDENCIA",
-    "DIRECCION DE CORRESPONDENCIA", "CORREO ELECTRONICO", "CELULAR",
-    "SITUACION DEL TITULAR", "EDAD DE MORA", "FORMA DE PAGO",
-    "FECHA ESTADO ORIGEN", "ESTADO DE LA CUENTA", "FECHA ESTADO DE LA CUENTA",
-    "ADJETIVO", "FECHA DE ADJETIVO","CLAUSULA DE PERMANENCIA","FECHA CLAUSULA DE PERMANENCIA"
-]
 
-try:
-    # --- PASO 2: LECTURA Y PREPARACIÓN INICIAL ---
-    print("\n--- PASO 2: Leyendo y preparando el archivo principal ---")
-    df = pd.read_fwf(
-        input_file_path, colspecs=colspecs, names=names, encoding='latin-1',
-        skiprows=1, skipfooter=1, engine='python'
-    )
-    
-    # *** LÍNEA DE SEGURIDAD: Limpiamos cualquier espacio extra en los nombres de las columnas ***
-    df.columns = df.columns.str.strip()
+# --- Diccionario para agrupar dataframes por tipo ---
+dataframes_por_tipo = {
+    "ANALISIS": [],
+    "R91": [],
+    "VENCIMIENTOS": []
+}
 
-    print("--- DIAGNÓSTICO: Columnas justo después de la lectura ---")
-    print(df.columns.tolist())
-
-    df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].astype(str).str.strip()
-
-    # --- PASO 3: CORRECCIONES DE DATOS ---
-    print("\n--- PASO 3: Iniciando correcciones desde archivo Excel ---")
-    # (El código de corrección va aquí como antes, sin cambios en su lógica)
+# --- Proceso de Lectura y Agrupación ---
+for ruta_archivo in archivos_a_procesar:
     try:
-        # A. Corregir Cédulas
-        df_cedulas = pd.read_excel(ruta_archivo_correcciones, sheet_name='Cedulas a corregir')
-        mapa_cedulas = pd.Series(df_cedulas['CEDULA CORRECTA'].astype(str).str.strip().values, index=df_cedulas['CEDULA MAL'].astype(str).str.strip()).to_dict()
-        df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].replace(mapa_cedulas)
+        nombre_archivo = ruta_archivo.split('/')[-1]
+        tipo_archivo_actual = ""
+        if "ANALISIS" in nombre_archivo: tipo_archivo_actual = "ANALISIS"
+        elif "R91" in nombre_archivo: tipo_archivo_actual = "R91"
+        elif "VENCIMIENTOS" in nombre_archivo: tipo_archivo_actual = "VENCIMIENTOS"
+        else: continue
+        
+        if ruta_archivo.upper().endswith('.XLSX'):
+            df = pd.read_excel(ruta_archivo)
+        elif ruta_archivo.upper().endswith('.XLS'):
+            df = pd.read_excel(ruta_archivo, engine='xlrd')
+        
+        config = configuracion[tipo_archivo_actual]
+        columnas_existentes = [col for col in config["usecols"] if col in df.columns]
+        df_filtrado = df[columnas_existentes]
+        df_renombrado = df_filtrado.rename(columns=config["rename_map"])
+        
+        dataframes_por_tipo[tipo_archivo_actual].append(df_renombrado)
+        
+        print(f"✅ Archivo '{nombre_archivo}' procesado y agrupado.")
 
-        # B. Actualizar campos 'CORREGIR'
-        df_vinculado = pd.read_excel(ruta_archivo_correcciones, sheet_name='Vinculado').set_index(pd.read_excel(ruta_archivo_correcciones, sheet_name='Vinculado')['CODIGO'].astype(str).str.strip())
-        mapa_vinc = {'NOMBRE COMPLETO':'NOMBRE', 'DIRECCION DE CORRESPONDENCIA':'DIRECCI', 'CORREO ELECTRONICO':'VINEMAIL', 'CELULAR':'TELEFONO'}
-        for col_df, col_vinc in mapa_vinc.items():
-            if col_df in df.columns:
-                mascara = df[col_df].astype(str).str.strip().str.contains('CORREGIR', case=False, na=False)
-                if mascara.any():
-                    ids_a_buscar = df.loc[mascara, 'NUMERO DE IDENTIFICACION']
-                    valores_nuevos = ids_a_buscar.map(df_vinculado[col_vinc])
-                    df[col_df] = valores_nuevos.combine_first(df[col_df])
-            else:
-                print(f"ADVERTENCIA: La columna '{col_df}' no se encontró para la actualización de 'CORREGIR'.")
-
-        # C. Actualizar Tipos de Identificación
-        df['TIPO DE IDENTIFICACION'] = 1
-        df_tipos = pd.read_excel(ruta_archivo_correcciones, sheet_name='Tipos de identificacion')
-        mapa_tipos = pd.Series(df_tipos['CODIGO DATA'].values, index=df_tipos['CEDULA CORRECTA'].astype(str).str.strip()).to_dict()
-        df['TIPO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].map(mapa_tipos).combine_first(df['TIPO DE IDENTIFICACION'])
     except Exception as e:
-        print(f"   ¡ERROR DURANTE CORRECCIONES EXCEL! Detalle: {e}")
+        print(f"❌ Error procesando el archivo '{ruta_archivo}': {e}")
 
-    # --- PASO 4 y 5 (se mantienen igual) ---
-    # ... (El código de los pasos 4 y 5 va aquí sin cambios) ...
+# --- Consolidación, Cruce y Exportación ---
+if any(dataframes_por_tipo.values()):
+    analisis_df = pd.concat(dataframes_por_tipo["ANALISIS"], ignore_index=True) if dataframes_por_tipo["ANALISIS"] else pd.DataFrame()
+    r91_df = pd.concat(dataframes_por_tipo["R91"], ignore_index=True) if dataframes_por_tipo["R91"] else pd.DataFrame()
+    vencimientos_df = pd.concat(dataframes_por_tipo["VENCIMIENTOS"], ignore_index=True) if dataframes_por_tipo["VENCIMIENTOS"] else pd.DataFrame()
+
+    if not analisis_df.empty:
+        analisis_df = analisis_df.drop_duplicates(subset=['Cedula_Cliente'], keep='first')
+    if not r91_df.empty:
+        r91_df = r91_df.drop_duplicates(subset=['Cedula_Cliente'], keep='first')
+    if not vencimientos_df.empty:
+        vencimientos_df = vencimientos_df.drop_duplicates(subset=['Cedula_Cliente'], keep='first')
+
+    print("\n🔗 Cruzando información de los reportes...")
     
-    # --- PASO 6: TRANSFORMACIONES Y FORMATEO FINAL ---
-    print("\n--- PASO 6: Aplicando formato final ---")
-
-    # *** LÍNEA DE DIAGNÓSTICO: Imprimimos las columnas justo antes del bloque que falla ***
-    print("\n--- DIAGNÓSTICO: Columnas ANTES de formatear la ciudad ---")
-    print(df.columns.tolist())
-
-    # A. Formato de CIUDAD DE CORRESPONDENCIA
-    print("   Formateando 'CIUDAD DE CORRESPONDENCIA'...")
-    col_ciudad = 'CIUDAD DE CORRESPONDENCIA'
-    df[col_ciudad] = df[col_ciudad].astype(str).fillna('')
-    mascara_reemplazo_ciudad = (df[col_ciudad].str.strip() == '') | (df[col_ciudad].str.strip().str.upper() == 'N/A') | (df[col_ciudad].str.strip() == '0')
-    df.loc[mascara_reemplazo_ciudad, col_ciudad] = 'POPAYAN'
-    df[col_ciudad] = df[col_ciudad].str.ljust(20)
-
-    # B. Resto de los formatos finales
-    print("   Aplicando otros formatos finales...")
-    # (El resto del código de formato va aquí)
-    df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].astype(str).str.replace(r'\s+', ' ', regex=True).str.strip().str.upper()
-    replacements_map = {'1118291452':'FANDINO LAYNE ASTRID', '10255294581':'MARTINEZ MUNOZ JOSE MANUEL', '25559122':'RAMIREZ DE CASTRO MARIA ESTELLA'}
-    for id_number, new_name in replacements_map.items():
-        df.loc[df['NUMERO DE IDENTIFICACION'] == id_number, 'NOMBRE COMPLETO'] = new_name
-
-    col_celular = 'CELULAR'
-    df[col_celular] = df[col_celular].astype(str).str.replace(r'\D', '', regex=True)
-    es_fijo_valido = (df[col_celular].str.len() == 7)
-    es_celular_valido = (df[col_celular].str.len() == 10) & (df[col_celular].str.startswith('3'))
-    df.loc[~(es_fijo_valido | es_celular_valido), col_celular] = '0'
+    reporte_final = pd.DataFrame()
+    list_of_dfs = [df for df in [analisis_df, r91_df, vencimientos_df] if not df.empty]
     
-    col_email = 'CORREO ELECTRONICO'
-    df[col_email] = df[col_email].astype(str).str.strip()
-    placeholders_a_eliminar = ['CORREGIR', 'PENDIENTE', 'NOTIENE', 'SINC', 'NN@', 'AAA@']
-    for placeholder in placeholders_a_eliminar:
-        df.loc[df[col_email].str.contains(placeholder, case=False, na=False), col_email] = ''
-    email_regex_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    df.loc[~df[col_email].str.match(email_regex_pattern, na=False), col_email] = ''
+    if list_of_dfs:
+        reporte_final = list_of_dfs[0]
+        for df_to_merge in list_of_dfs[1:]:
+            reporte_final = pd.merge(reporte_final, df_to_merge, on="Cedula_Cliente", how="outer")
+
+    # --- INICIO DE LAS MODIFICACIONES ---
+
+    # ✨ LÓGICA CORREGIDA PARA LAS CUOTAS ✨
+    for col_cuota in ['Cuotas_Pagadas', 'Cuota_Vigente']:
+        if col_cuota in reporte_final.columns:
+            # Primero, asegurar que la columna sea numérica, convirtiendo errores en Nulo (NaN)
+            reporte_final[col_cuota] = pd.to_numeric(reporte_final[col_cuota], errors='coerce')
+            
+            # Aplicar la corrección solo a números mayores a 99
+            reporte_final[col_cuota] = np.where(
+                reporte_final[col_cuota] > 99,              # Condición: si el valor tiene más de 2 dígitos
+                reporte_final[col_cuota] % 100,             # Verdadero: se obtienen los últimos 2 dígitos (ej: 2014 -> 14)
+                reporte_final[col_cuota]                    # Falso: se conserva el valor original (ej: 6 -> 6)
+            )
+            # Finalmente, convertir a tipo entero para un formato limpio
+            reporte_final[col_cuota] = reporte_final[col_cuota].astype('Int64')
+
+    # Ajustar 'Codigo_Vendedor' para que sea de tipo string
+    if 'Codigo_Vendedor' in reporte_final.columns:
+        reporte_final['Codigo_Vendedor'] = reporte_final['Codigo_Vendedor'].astype(str)
+
+    # Crear la columna 'Credito' (asegurando que no tenga decimales)
+    if 'Tipo_Credito' in reporte_final.columns and 'Numero_Credito' in reporte_final.columns:
+        reporte_final['Numero_Credito'] = pd.to_numeric(reporte_final['Numero_Credito'], errors='coerce').astype('Int64')
+        reporte_final['Credito'] = reporte_final['Tipo_Credito'].astype(str) + '-' + reporte_final['Numero_Credito'].astype(str)
+        reporte_final['Empresa'] = np.where(
+            reporte_final['Credito'].str.startswith('DF'), 
+            'FINANSUEÑOS', 
+            'ARPESOD'
+        )
     
-    df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].str.ljust(45)
-    df['DIRECCION DE CORRESPONDENCIA'] = df['DIRECCION DE CORRESPONDENCIA'].astype(str).str.ljust(60)
-    df['CORREO ELECTRONICO'] = df[col_email].str.ljust(60)
-    df['CELULAR'] = df[col_celular].str.zfill(12)
-    df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].str.zfill(11)
-    print("Formato final aplicado.")
+    # --- FIN DE LAS MODIFICACIONES ---
 
-    # --- PASO 7: GUARDAR ARCHIVO FINAL ---
-    # ... (El código del paso 7 va aquí) ...
+    print("\n--- Vista Previa del Reporte Consolidado y Cruzado ---")
+    print(reporte_final.head())
+    
+    print("\n--- Estructura del Reporte Final ---")
+    reporte_final.info()
 
-except Exception as e:
-    print(f"\nHa ocurrido un error inesperado en el proceso principal: {e}")
+    # --- Guardar el DataFrame final en un archivo Excel ---
+    nombre_archivo_salida = 'Reporte_Consolidado_Final.xlsx'
+    reporte_final.to_excel(nombre_archivo_salida, index=False, sheet_name='Reporte Consolidado')
+    
+    print(f"\n✨ ¡Éxito! El reporte final se ha guardado como '{nombre_archivo_salida}'")
+
+else:
+    print("\nNo se procesó ningún archivo.")
