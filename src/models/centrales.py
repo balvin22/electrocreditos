@@ -82,14 +82,36 @@ try:
         mapa_fnz = pd.Series(tabla_fnz.VALOR.values, index=tabla_fnz.FACTURA).to_dict()
         df['VALOR INICIAL'] = df['NUMERO DE LA CUENTA U OBLIGACION'].map(mapa_fnz).combine_first(df['VALOR INICIAL'])
         
-        print("   B. Procesando R05 para 'FECHA DE PAGO'...")
+           # --- BLOQUE MODIFICADO ---
+        print("   B. Procesando R05 para 'FECHA DE PAGO' (descartando fechas originales)...")
         df_r05 = pd.read_excel(ruta_archivo_correcciones, sheet_name='R05', usecols=['MCNTIPCRU2', 'MCNNUMCRU2', 'MCNFECHA'])
+
+# Convertir fecha a formato YYYYMMDD para facilitar la comparación
         df_r05['FECHA_NUEVA'] = pd.to_datetime(df_r05['MCNFECHA'], format='%d/%m/%Y', errors='coerce').dt.strftime('%Y%m%d')
+        df_r05.dropna(subset=['FECHA_NUEVA'], inplace=True) # Eliminar filas donde la fecha no fue válida
+
+# Crear llave base
         df_r05['llave_base'] = df_r05['MCNTIPCRU2'].astype(str).str.strip() + df_r05['MCNNUMCRU2'].astype(str).str.strip()
-        tabla_r05 = pd.concat([pd.DataFrame({'LLAVE': df_r05['llave_base'], 'FECHA': df_r05['FECHA_NUEVA']}), pd.DataFrame({'LLAVE': df_r05['llave_base'] + 'C1', 'FECHA': df_r05['FECHA_NUEVA']}), pd.DataFrame({'LLAVE': df_r05['llave_base'] + 'C2', 'FECHA': df_r05['FECHA_NUEVA']})]).dropna(subset=['FECHA'])
+
+# Crear tabla con las variaciones de llave (normal, C1, C2)
+        tabla_r05 = pd.concat([
+             pd.DataFrame({'LLAVE': df_r05['llave_base'], 'FECHA': df_r05['FECHA_NUEVA']}),
+             pd.DataFrame({'LLAVE': df_r05['llave_base'] + 'C1', 'FECHA': df_r05['FECHA_NUEVA']}),
+             pd.DataFrame({'LLAVE': df_r05['llave_base'] + 'C2', 'FECHA': df_r05['FECHA_NUEVA']})
+             ])
         tabla_r05['LLAVE'] = tabla_r05['LLAVE'].astype(str).str.zfill(18)
-        mapa_r05 = pd.Series(tabla_r05.FECHA.values, index=tabla_r05.LLAVE).to_dict()
-        df['FECHA DE PAGO'] = df['NUMERO DE LA CUENTA U OBLIGACION'].map(mapa_r05).combine_first(df['FECHA DE PAGO'])
+
+# Encontrar la fecha más reciente por cada llave única
+        mapa_r05 = tabla_r05.groupby('LLAVE')['FECHA'].max().to_dict()
+
+# Mapear las fechas desde R05. Si no hay coincidencia, el resultado es NaN.
+        nuevas_fechas = df['NUMERO DE LA CUENTA U OBLIGACION'].map(mapa_r05)
+
+# REEMPLAZO TOTAL:
+# Se asignan las nuevas fechas. Si el mapeo resultó en NaN (no se encontró la cuenta en R05),
+# se rellena con '00000000', borrando cualquier valor que existiera antes.
+        df['FECHA DE PAGO'] = nuevas_fechas.fillna('00000000')
+        # --- FIN DEL BLOQUE MODIFICADO ---
         
         print("Actualizaciones completadas.")
     except Exception as e:
@@ -100,7 +122,7 @@ try:
     
     # A. Limpieza de caracteres de texto
     letter_replacements = {'Ñ':'N','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U','Ü':'U','Ÿ':'Y','Â':'A','Ã':'A','š':'S','©':'C','ñ':'N','á':'A','é':'E','í':'I','ó':'O','ú':'U','ü':'U','ÿ':'Y','â':'A','ã':'A'}
-    chars_to_remove = ['@','°','|','¬','¡','“','#','$','%','&','/','(',')','=','‘','\\','¿','+','~','´´','´','[','{','^','_','.',':',',',';','<','>','Æ','±']
+    chars_to_remove = ['@','°','|','¬','¡','“','#','$','%','&','/','(',')','=','‘','\\','¿','+','~','´´','´','[','{','^','-','_','.',':',',',';','<','>','Æ','±']
     string_cols = df.select_dtypes(include='object').columns.drop('CORREO ELECTRONICO', errors='ignore')
     for col in string_cols:
         df[col] = df[col].astype(str)
@@ -132,7 +154,7 @@ try:
     
     # A. Formato de textos generales
     df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].astype(str).str.replace(r'\s+', ' ', regex=True).str.strip().str.upper()
-    replacements_map = {'1118291452':'FANDINO LAYNE ASTRID', '10255294581':'MARTINEZ MUNOZ JOSE MANUEL', '25559122':'RAMIREZ DE CASTRO MARIA ESTELLA'}
+    replacements_map = {'1118291452':'FANDINO LAYNE ASTRID', '1025529458':'MARTINEZ MUNOZ JOSE MANUEL', '25559122':'RAMIREZ DE CASTRO MARIA ESTELLA'}
     for id_number, new_name in replacements_map.items():
         df.loc[df['NUMERO DE IDENTIFICACION'] == id_number, 'NOMBRE COMPLETO'] = new_name
     
@@ -158,7 +180,39 @@ try:
     email_regex_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     df.loc[~df[col_email].str.match(email_regex_pattern, na=False), col_email] = ''
     
-    # E. Formatos finales de longitud
+    # E. Formatos de longitud y tipo (NUEVOS AJUSTES)
+    print("   Aplicando formatos de longitud, tipo y valores fijos...")
+    
+    # --- ¡NUEVO CAMBIO AQUI! ---
+    df['ESTADO ORIGEN DE LA CUENTA'] = '0'
+
+    df['RESPONSABLE'] = df['RESPONSABLE'].astype(str).str.zfill(2)
+    df['NOVEDAD'] = df['NOVEDAD'].astype(str).str.zfill(2)
+    
+    df['TOTAL CUOTAS'] = df['TOTAL CUOTAS'].astype(str).str.zfill(3)
+    df['CUOTAS CANCELADAS'] = df['CUOTAS CANCELADAS'].astype(str).str.zfill(3)
+    df['CUOTAS EN MORA'] = df['CUOTAS EN MORA'].astype(str).str.zfill(3)
+
+    df['FECHA LIMITE DE PAGO'] = df['FECHA LIMITE DE PAGO'].astype(str)
+    
+    df['SITUACION DEL TITULAR'] = '0'
+    
+    df['EDAD DE MORA'] = df['EDAD DE MORA'].astype(str).str.zfill(3)
+    
+    df['FORMA DE PAGO'] = df['FORMA DE PAGO'].astype(str)
+    df['FECHA ESTADO ORIGEN'] = df['FECHA ESTADO ORIGEN'].astype(str)
+    
+    df['ESTADO DE LA CUENTA'] = df['ESTADO DE LA CUENTA'].astype(str).str.zfill(2)
+    
+    df['FECHA ESTADO DE LA CUENTA'] = df['FECHA ESTADO DE LA CUENTA'].astype(str)
+    
+    df['ADJETIVO'] = '0'
+    df['FECHA DE ADJETIVO'] = df['FECHA DE ADJETIVO'].astype(str).str.zfill(8)
+    
+    df['CLAUSULA DE PERMANENCIA'] = df['CLAUSULA DE PERMANENCIA'].astype(str).str.zfill(3)
+    df['FECHA CLAUSULA DE PERMANENCIA'] = df['FECHA CLAUSULA DE PERMANENCIA'].astype(str).str.zfill(8)
+
+    # F. Formatos finales de longitud y tipo
     print("   Aplicando formatos de longitud final...")
     df['NOMBRE COMPLETO'] = df['NOMBRE COMPLETO'].str.ljust(45)
     df['DIRECCION DE CORRESPONDENCIA'] = df['DIRECCION DE CORRESPONDENCIA'].astype(str).str.ljust(60)
@@ -166,6 +220,10 @@ try:
     df['CORREO ELECTRONICO'] = df[col_email].str.ljust(60)
     df['CELULAR'] = df[col_celular].str.zfill(12)
     df['NUMERO DE IDENTIFICACION'] = df['NUMERO DE IDENTIFICACION'].str.zfill(11)
+    
+    # Asegurar que TIPO DE IDENTIFICACION sea string al final
+    df['TIPO DE IDENTIFICACION'] = df['TIPO DE IDENTIFICACION'].astype(int).astype(str)
+    
     print("Formato final aplicado.")
 
     # --- PASO 7: GUARDAR ARCHIVO FINAL ---
