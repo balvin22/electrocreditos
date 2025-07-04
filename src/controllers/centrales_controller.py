@@ -1,93 +1,113 @@
 import pandas as pd
-import io
 import numpy as np
 
-# --- La configuración de columnas que definiste se mantiene igual ---
 configuracion = {
     "ANALISIS": {
         "usecols": ["direccion", "barrio", "nomciudad", "totcuotas", "valorcuota", "diasatras", "cuotaspag","cedula","saldofac","tipo","numero"],
-        "rename_map": {
-            "direccion": "Direccion",
-            "barrio": "Barrio",
-            "nomciudad": "Nombre_Ciudad",
-            "totcuotas": "Total_Cuotas",
-            "valorcuota": "Valor_Cuota",
-            "diasatras": "Dias_Atraso",
-            "cuotaspag": "Cuotas_Pagadas",
-            "cedula" : "Cedula_Cliente",
-            "saldofac":"Saldo_Factura",
-            "tipo":"Tipo_Credito",
-            "numero":"Numero_Credito"
-        }
+        "rename_map": { "direccion": "Direccion",
+                        "barrio": "Barrio",
+                        "nomciudad": "Nombre_Ciudad",
+                        "totcuotas": "Total_Cuotas",
+                        "valorcuota": "Valor_Cuota",
+                        "diasatras": "Dias_Atraso",
+                        "cuotaspag": "Cuotas_Pagadas",
+                        "cedula" : "Cedula_Cliente",
+                        "saldofac":"Saldo_Factura",
+                        "tipo":"Tipo_Credito",
+                        "numero":"Numero_Credito" }
     },
     "R91": {
-        "usecols": ["VINNOMBRE", "VENNOMBRE", "MCDZONA", "MCDVINCULA", "MCDNUMCRU1", "MCDTIPCRU1","VENOMBRE","VENCODIGO",
-                    "COBNOMBRE", "MCDCCOSTO", "CCONOMBRE", "META_INTER", "META_DC_AL", "META_DC_AT", "META_ATRAS"],
-        "rename_map": {
-            "MCDTIPCRU1": "Tipo_Credito",
-            "MCDNUMCRU1": "Numero_Credito",
-            "MCDVINCULA" : "Cedula_Cliente",
-            "VINNOMBRE": "Nombre_Cliente",
-            "MCDZONA" : "Zona",
-            "COBNOMBRE" : "Nombre_Cobrador",
-            "VENOMBRE" : "Nombre_Vendedor",
-            "VENCODIGO" : "Codigo_Vendedor",
-            "CCONOMBRE" : "Centro_Costos",
-            "MCDCCOSTO" : "Codigo_Centro_Costos",
-            "META_INTER" : "Meta_Intereses",
-            "META_DC_AL" : "Meta_DC_Al_Dia",
-            "META_DC_AT" : "Meta_DC_Atraso",
-            "META_ATRAS" : "Meta_Atraso"
-        }
+        "usecols": ["VINNOMBRE", "VENNOMBRE", "MCDZONA", "MCDVINCULA", "MCDNUMCRU1", "MCDTIPCRU1","VENOMBRE","VENCODIGO", "COBNOMBRE", "MCDCCOSTO", "CCONOMBRE", "META_INTER", "META_DC_AL", "META_DC_AT", "META_ATRAS"],
+        "rename_map": { "MCDTIPCRU1": "Tipo_Credito",
+                       "MCDNUMCRU1": "Numero_Credito",
+                       "MCDVINCULA" : "Cedula_Cliente",
+                       "VINNOMBRE": "Nombre_Cliente",
+                       "MCDZONA" : "Zona",
+                       "COBNOMBRE" : "Nombre_Cobrador",
+                       "VENNOMBRE" : "Nombre_Vendedor",
+                       "VENCODIGO" : "Codigo_Vendedor",
+                       "CCONOMBRE" : "Centro_Costos",
+                       "MCDCCOSTO" : "Codigo_Centro_Costos",
+                       "META_INTER" : "Meta_Intereses",
+                       "META_DC_AL" : "Meta_DC_Al_Dia",
+                       "META_DC_AT" : "Meta_DC_Atraso",
+                       "META_ATRAS" : "Meta_Atraso" }
     },
     "VENCIMIENTOS": {
         "usecols": ["MCNVINCULA", "VINTELEFO3", "SALDODOC", "VENCE", "VINTELEFON", "MCNCUOCRU1"],
-        "rename_map": {
-            "MCNVINCULA": "Cedula_Cliente",
-            "VINTELEFO3": "Celular",
-            "VINTELEFON" : "Telefono",
-            "SALDODOC": "Saldo_Factura",
-            "MCNCUOCRU1": "Cuota_Vigente",
-            "VENCE": "Fecha_Vencimiento",
-        }
+        "rename_map": { "MCNVINCULA": "Cedula_Cliente",
+                       "VINTELEFO3": "Celular",
+                       "VINTELEFON" : "Telefono",
+                       "SALDODOC": "Valor_Cuota_Vigente",
+                       "MCNCUOCRU1": "Cuota_Vigente",
+                       "VENCE": "Fecha_Vencimiento" }
     },
     "R03":{
         "usecols": ["CODEUDOR1","NOMBRE1","VINTELEFON","CIUNOMBRE1","CODEUDOR2","NOMBRE2","VINTELEFO2","CIUNOMBRE2","CEDULA"],
-        "rename_map": {
-            "CODEUDOR1": "Codeudor1",
-            "NOMBRE1": "Nombre_Codeudor1",
-            "VINTELEFON": "Telefono_Codeudor1",
-            "CIUNOMBRE1": "Ciudad_Codeudor1",
-            "CODEUDOR2": "Codeudor2",
-            "NOMBRE2": "Nombre_Codeudor2",
-            "VINTELEFO2": "Telefono_Codeudor2",
-            "CIUNOMBRE2": "Ciudad_Codeudor2",
-            "CEDULA": "Cedula_Cliente"
-        }
+        "rename_map": { "CODEUDOR1": "Codeudor1",
+                       "NOMBRE1": "Nombre_Codeudor1",
+                       "VINTELEFON": "Telefono_Codeudor1",
+                       "CIUNOMBRE1": "Ciudad_Codeudor1",
+                       "CODEUDOR2": "Codeudor2",
+                       "NOMBRE2": "Nombre_Codeudor2",
+                       "VINTELEFO2": "Telefono_Codeudor2",
+                       "CIUNOMBRE2": "Ciudad_Codeudor2",
+                       "CEDULA": "Cedula_Cliente" }
     },
     "CRTMPCONSULTA1":{
         "usecols":["CORREO","FECHA_FACT","TIPO_DOCUM","NUMERO_DOC","IDENTIFICA"],
-        "rename_map":{
-            "CORREO": "Correo",
-            "FECHA_FACT":"Fecha_Facturada",
-            "TIPO_DOCUM":"Tipo_Credito",
-            "NUMERO_DOC":"Numero_Credito",
-            "IDENTIFICA":"Cedula_Cliente"
-        }
+        "rename_map":{ "CORREO": "Correo",
+                       "FECHA_FACT":"Fecha_Facturada",
+                       "TIPO_DOCUM":"Tipo_Credito",
+                       "NUMERO_DOC":"Numero_Credito",
+                       "IDENTIFICA":"Cedula_Cliente" }
     },
     "FNZ003":{
         "usecols":["CREDITO","CONCEPTO","SALDO"],
-        "rename_map":{
-            "CREDITO":"Credito",
-            "CONCEPTO":"Concepto",
-            "SALDO":"Saldo"
-        }
+        "rename_map":{ "CREDITO":"Credito",
+                       "CONCEPTO":"Concepto",
+                       "SALDO":"Saldo" }
+    },
+      "MATRIZ_CARTERA": {
+        "skiprows": 2, 
+        "header": None, 
+        "new_names": [
+            'Zona', 'Cobrador', 'telefono_cobrador', 'Regional', 'Gestor', 'gestor_telefono',
+            'call_center_1_30_dias', 'call_center_nombre_1_30', 'call_center_telefono_1_30',
+            'call_center_31_90_dias', 'call_center_nombre_31_90', 'call_center_telefono_31_90',
+            'call_center_91_360_dias', 'call_center_nombre_91_360', 'call_center_telefono_91_360'
+        ],
+        "merge_on": "Zona" 
+      },
+      "ASESORES": {
+        "sheets": [
+            {
+                "sheet_name": "ASESORES",
+                "usecols": ["NOMBRE ASESOR", "MOVIL ASESOR", "LIDER ZONA", "MOVIL LIDER"],
+                "rename_map": {
+                    "NOMBRE ASESOR": "Nombre_Vendedor",
+                    "MOVIL ASESOR": "Movil_Asesor",
+                    "LIDER ZONA": "Lider_Zona",
+                    "MOVIL LIDER": "Movil_Lider"
+                },
+                "merge_on": "Nombre_Vendedor"
+            },
+            {
+                "sheet_name": "Centro Costos",
+                "usecols": ["CENTRO DE COSTOS", "ACTIVO"],
+                "rename_map": {
+                    "CENTRO DE COSTOS": "Codigo_Centro_Costos",
+                    "ACTIVO": "Activo_Centro_Costos"
+                },
+                "merge_on": "Codigo_Centro_Costos"
+            }
+        ]
     }
 }
 
 # --- Lista de archivos a procesar ---
-# ruta_base = 'C:/Users/usuario/Desktop/JUNIO/'
-ruta_base = '/home/balvin/dev/electrocreditos/JUNIO/'
+ruta_base = 'C:/Users/usuario/Desktop/JUNIO/'
+# ruta_base = '/home/balvin/dev/electrocreditos/JUNIO/'
 archivos_a_procesar = [
     ruta_base + "ANALISIS ARP GENERAL 0506INICIAL.XLS",
     ruta_base + "ANALISIS FNS GENERAL 0506INICIAL.XLS",
@@ -98,24 +118,25 @@ archivos_a_procesar = [
     ruta_base + "R03 2025 FNS.xlsx",
     ruta_base + "R03 2025 ARP.xlsx",
     ruta_base + "CRTMPCONSULTA1.xlsx",
-    ruta_base + "FNZ003 A 20 JUN.XLSX"
+    ruta_base + "FNZ003 A 20 JUN.XLSX",
+    ruta_base + "MATRIZ DE CARTERA.xlsx",
+    ruta_base + "ASESORES ACTIVOS.xlsx"
 ]
 
-# --- Diccionario para agrupar dataframes por tipo ---
-# --- Diccionario para agrupar dataframes por tipo (usando las claves estandarizadas) ---
+# --- 2. LECTURA Y PROCESAMIENTO DE ARCHIVOS ---
 dataframes_por_tipo = {key: [] for key in configuracion.keys()}
-
-# --- Proceso de Lectura y Agrupación ---
 print("--- 🔄 Iniciando lectura de archivos ---")
 for ruta_archivo in archivos_a_procesar:
     try:
         nombre_archivo = ruta_archivo.split('/')[-1]
         tipo_archivo_actual = None
         
-        # ✨ MEJORA: Bucle dinámico para detectar el tipo de archivo.
-        # Esto hace que no necesites añadir más 'elif' en el futuro.
+        nombre_base = nombre_archivo.split('.')[0].upper().replace(" ", "_")
+        palabras_en_nombre = set(nombre_base.split('_'))
+        
         for tipo in configuracion.keys():
-            if tipo in nombre_archivo.replace(" ", "_"): # Reemplaza espacios para coincidir mejor
+            palabras_en_clave = set(tipo.split('_'))
+            if palabras_en_clave.issubset(palabras_en_nombre):
                  tipo_archivo_actual = tipo
                  break
         
@@ -123,159 +144,137 @@ for ruta_archivo in archivos_a_procesar:
             print(f"⚠️  Archivo '{nombre_archivo}' omitido (no coincide con ningún tipo de configuración).")
             continue
 
-        df = pd.read_excel(ruta_archivo, engine='xlrd' if ruta_archivo.upper().endswith('.XLS') else 'openpyxl')
         config = configuracion[tipo_archivo_actual]
         
-        # Filtrar solo las columnas que existen en el archivo para evitar errores
-        columnas_a_usar = [col for col in config["usecols"] if col in df.columns]
-        df_filtrado = df[columnas_a_usar]
+        # El bucle ahora maneja 3 tipos de configuraciones: normal, new_names y sheets
+        if "sheets" in config:
+            for sheet_config in config["sheets"]:
+                sheet_name = sheet_config["sheet_name"]
+                df_hoja = pd.read_excel(ruta_archivo, sheet_name=sheet_name, engine='openpyxl')
+                columnas_a_usar = [col for col in sheet_config["usecols"] if col in df_hoja.columns]
+                df_filtrado = df_hoja[columnas_a_usar]
+                df_renombrado = df_filtrado.rename(columns=sheet_config["rename_map"])
+                dataframes_por_tipo[tipo_archivo_actual].append({ "data": df_renombrado, "config": sheet_config })
         
-        if tipo_archivo_actual == "R03":
-            df_filtrado = df_filtrado.replace('.', 'SIN CODEUDOR').fillna('SIN CODEUDOR')
-            
-        df_renombrado = df_filtrado.rename(columns=config["rename_map"])
-        dataframes_por_tipo[tipo_archivo_actual].append(df_renombrado)
+        elif "new_names" in config:
+            df = pd.read_excel(ruta_archivo, header=config.get("header"), skiprows=config.get("skiprows"), names=config.get("new_names"))
+            dataframes_por_tipo[tipo_archivo_actual].append(df)
+        
+        else:
+            df = pd.read_excel(ruta_archivo, engine='xlrd' if ruta_archivo.upper().endswith('.XLS') else 'openpyxl')
+            columnas_a_usar = [col for col in config["usecols"] if col in df.columns]
+            df_filtrado = df[columnas_a_usar]
+            if tipo_archivo_actual == "R03":
+                df_filtrado = df_filtrado.replace('.', 'SIN CODEUDOR').fillna('SIN CODEUDOR')
+            df_renombrado = df_filtrado.rename(columns=config["rename_map"])
+            dataframes_por_tipo[tipo_archivo_actual].append(df_renombrado)
+
         print(f"✅ Archivo '{nombre_archivo}' procesado como tipo '{tipo_archivo_actual}'.")
         
     except Exception as e:
         print(f"❌ Error procesando el archivo '{ruta_archivo}': {e}")
 
-# --- Consolidación, Cruce y Exportación ---
-# Se verifica que existan datos en R91 para poder construir el reporte
+# --- 3. CONSOLIDACIÓN Y CONSTRUCCIÓN DEL REPORTE BASE ---
 if dataframes_por_tipo.get("R91"):
-    # 1. Consolidar todos los dataframes de forma segura usando .get()
-    print("\n---  consolidating dataframes ---")
-    analisis_df = pd.concat(dataframes_por_tipo.get("ANALISIS", []), ignore_index=True)
-    r91_df = pd.concat(dataframes_por_tipo.get("R91", []), ignore_index=True)
-    vencimientos_df = pd.concat(dataframes_por_tipo.get("VENCIMIENTOS", []), ignore_index=True)
-    r03_df = pd.concat(dataframes_por_tipo.get("R03", []), ignore_index=True)
-    crtmp_df = pd.concat(dataframes_por_tipo.get("CRTMPCONSULTA1", []), ignore_index=True)
-    fnz003_df = pd.concat(dataframes_por_tipo.get("FNZ003", []), ignore_index=True)
+    print("\n--- Consolidando DataFrames ---")
 
-    # 2. Construir el reporte base desde R91 y crear llaves principales
-    print("🔗 Creando el reporte base y llaves principales...")
+    def safe_concat(key):
+        items = dataframes_por_tipo.get(key, [])
+        if not items: return pd.DataFrame()
+        if isinstance(items[0], dict):
+            df_list = [item["data"] for item in items if "data" in item]
+        else:
+            df_list = items
+        return pd.concat(df_list, ignore_index=True) if df_list else pd.DataFrame()
+
+    # Cargar todos los dataframes
+    analisis_df = safe_concat("ANALISIS")
+    r91_df = safe_concat("R91")
+    vencimientos_df = safe_concat("VENCIMIENTOS")
+    r03_df = safe_concat("R03")
+    crtmp_df = safe_concat("CRTMPCONSULTA1")
+    fnz003_df = safe_concat("FNZ003")
+    matriz_cartera_df = safe_concat("MATRIZ_CARTERA")
+    asesores_sheets = dataframes_por_tipo.get("ASESORES", [])
+
+    # --- 4. CREACIÓN Y PREPARACIÓN DEL REPORTE FINAL ---
+    print("🔗 Creando el reporte base y la llave principal 'Credito'...")
     reporte_final = r91_df.copy()
     reporte_final['Numero_Credito'] = pd.to_numeric(reporte_final['Numero_Credito'], errors='coerce').astype('Int64')
     reporte_final['Credito'] = reporte_final['Tipo_Credito'].astype(str) + '-' + reporte_final['Numero_Credito'].astype(str)
     reporte_final['Empresa'] = np.where(reporte_final['Tipo_Credito'] == 'DF', 'FINANSUEÑOS', 'ARPESOD')
 
-    # --- 3. PREPARAR Y UNIR SALDO CAPITAL ---
-    print("🔍 Preparando y uniendo Saldo Capital...")
+    # --- 5. UNIÓN SECUENCIAL DE TODOS LOS ARCHIVOS ---
+    print("🔍 Uniendo todos los archivos al reporte base...")
 
-    # Mapa para ARPESOD desde ANALISIS
+    # Función auxiliar para unir DataFrames sin duplicar columnas
+    def merge_sin_duplicados(df_left, df_right, on_key):
+        if df_right.empty:
+            return df_left
+        # Columnas en df_right que ya existen en df_left (excluyendo la llave)
+        cols_a_quitar = [col for col in df_right.columns if col in df_left.columns and col not in on_key]
+        df_right_limpio = df_right.drop(columns=cols_a_quitar)
+        return pd.merge(df_left, df_right_limpio, on=on_key, how='left')
+
+    # Unir ANALISIS
     if not analisis_df.empty:
-        analisis_df['Credito'] = analisis_df['Tipo_Credito'].astype(str) + '-' + pd.to_numeric(analisis_df['Numero_Credito'], errors='coerce').astype('Int64').astype(str)
-        mapa_saldo_arpesod = analisis_df.drop_duplicates('Credito').set_index('Credito')['Saldo_Factura']
-        reporte_final = reporte_final.merge(mapa_saldo_arpesod.rename('Saldo_Capital_Arpesod'), on='Credito', how='left')
-    
-    # Mapa para FINANSUEÑOS desde FNZ003
-    if not fnz003_df.empty:
-        conceptos_deseados = ['CAPITAL', 'ABONO DIF TASA']
-        fnz003_filtrado = fnz003_df[fnz003_df['Concepto'].isin(conceptos_deseados)]
-        mapa_saldo_finansueños = fnz003_filtrado.groupby('Credito')['Saldo'].sum()
-        reporte_final = reporte_final.merge(mapa_saldo_finansueños.rename('Saldo_Capital_Finansueños'), on='Credito', how='left')
+        analisis_df['Numero_Credito'] = pd.to_numeric(analisis_df['Numero_Credito'], errors='coerce').astype('Int64')
+        analisis_df['Credito'] = analisis_df['Tipo_Credito'].astype(str) + '-' + analisis_df['Numero_Credito'].astype(str)
+        reporte_final = merge_sin_duplicados(reporte_final, analisis_df, on_key=['Credito'])
 
-    # CREAR LA COLUMNA FINAL 'Saldo_Capital'
-    reporte_final['Saldo_Capital'] = np.where(
-        reporte_final['Empresa'] == 'ARPESOD',
-        reporte_final.get('Saldo_Capital_Arpesod'),
-        reporte_final.get('Saldo_Capital_Finansueños')
-    )
-
-    
-    reporte_final['Saldo_Capital'] = pd.to_numeric(reporte_final['Saldo_Capital'], errors='coerce').fillna(0).astype(int)
-    reporte_final = reporte_final.drop(columns=['Saldo_Capital_Arpesod', 'Saldo_Capital_Finansueños'], errors='ignore')
-
-    # ✨✨✨ AÑADIR ESTE BLOQUE NUEVO ✨✨✨
-# Unir la información adicional de los archivos de ANÁLISIS
-    if not analisis_df.empty:
-      print("🔗 Uniendo información adicional del reporte de Análisis...")
-    # Seleccionamos las columnas que queremos añadir desde analisis_df
-      columnas_analisis_a_unir = [
-        'Credito', 'Direccion', 'Barrio', 'Nombre_Ciudad', 
-        'Total_Cuotas', 'Valor_Cuota', 'Dias_Atraso', 'Cuotas_Pagadas'
-    ]
-    
-    # Nos aseguramos de no duplicar la llave y tomamos el primer registro por crédito
-    info_analisis = analisis_df[columnas_analisis_a_unir].drop_duplicates('Credito')
-    
-    # Hacemos el merge con el reporte final usando la llave 'Credito'
-    reporte_final = pd.merge(reporte_final, info_analisis, on='Credito', how='left')
-# --- FIN DEL BLOQUE NUEVO ---
-    # --- 3B. PREPARAR Y UNIR SALDO AVALES Y SALDO INTERÉS CORRIENTE ---
-    print("📊 Calculando Saldo de Avales e Interés Corriente...")
-    if not fnz003_df.empty:
-        # --- Cálculo de Saldo Avales ---
-        fnz003_avales = fnz003_df[fnz003_df['Concepto'] == 'AVAL']
-        mapa_saldo_avales = fnz003_avales.groupby('Credito')['Saldo'].sum()
-        reporte_final = reporte_final.merge(mapa_saldo_avales.rename('Saldo_Avales_Finansueños'), on='Credito', how='left')
-        reporte_final['Saldo_Avales_Finansueños'] = reporte_final['Saldo_Avales_Finansueños'].fillna(0).astype(int)
-
-        # --- Cálculo de Saldo Interés Corriente ---
-        fnz003_interes = fnz003_df[fnz003_df['Concepto'] == 'INTERES CORRIENTE']
-        mapa_saldo_interes = fnz003_interes.groupby('Credito')['Saldo'].sum()
-        reporte_final = reporte_final.merge(mapa_saldo_interes.rename('Saldo_Interes_Finansueños'), on='Credito', how='left')
-        reporte_final['Saldo_Interes_Finansueños'] = reporte_final['Saldo_Interes_Finansueños'].fillna(0).astype(int)
-
-    # Crear columnas finales con la lógica condicional
-    reporte_final['Saldo_Avales'] = np.where(
-        reporte_final['Empresa'] == 'FINANSUEÑOS',
-        reporte_final.get('Saldo_Avales_Finansueños'),
-        'NO APLICA'
-    )
-    reporte_final['Saldo_Interes_Corriente'] = np.where(
-        reporte_final['Empresa'] == 'FINANSUEÑOS',
-        reporte_final.get('Saldo_Interes_Finansueños'),
-        'NO APLICA'
-    )
-
-    # --- Validación de Avales Negativos ---
-    avales_numericos = pd.to_numeric(reporte_final['Saldo_Avales'], errors='coerce')
-    if (avales_numericos < 0).any():
-        print("\n⚠️ ALERTA: Se encontraron saldos de avales negativos para FINANSUEÑOS.")
-        # Opcional: mostrar los créditos con avales negativos
-        # print(reporte_final[avales_numericos < 0][['Credito', 'Saldo_Avales']])
-        
-    # Limpiar columnas temporales
-    reporte_final = reporte_final.drop(columns=['Saldo_Avales_Finansueños', 'Saldo_Interes_Finansueños'], errors='ignore')
-
-    # --- 4. UNIR EL RESTO DE LA INFORMACIÓN ---
-    print("🔗 Uniendo el resto de la información...")
+    # Unir VENCIMIENTOS
     if not vencimientos_df.empty:
-        vencimientos_df_map = vencimientos_df.drop_duplicates(subset=['Cedula_Cliente'], keep='first')
-        reporte_final = pd.merge(reporte_final, vencimientos_df_map, on='Cedula_Cliente', how='left', suffixes=('', '_Vencimientos'))
+        vencimientos_df_limpio = vencimientos_df.drop_duplicates(subset=['Cedula_Cliente'])
+        reporte_final = merge_sin_duplicados(reporte_final, vencimientos_df_limpio, on_key=['Cedula_Cliente'])
+        
+    # Unir R03 (Codeudores)
     if not r03_df.empty:
-        r03_df_map = r03_df.drop_duplicates(subset=['Cedula_Cliente'], keep='first')
-        reporte_final = pd.merge(reporte_final, r03_df_map, on='Cedula_Cliente', how='left', suffixes=('', '_R03'))
+        r03_df_limpio = r03_df.drop_duplicates(subset=['Cedula_Cliente'])
+        reporte_final = merge_sin_duplicados(reporte_final, r03_df_limpio, on_key=['Cedula_Cliente'])
 
-    # --- 5. OTRAS TRANSFORMACIONES ---
-    # (El resto de tus transformaciones y limpieza se mantienen igual)
+    # Unir CRTMPCONSULTA1
+    if not crtmp_df.empty:
+        crtmp_df['Numero_Credito'] = pd.to_numeric(crtmp_df['Numero_Credito'], errors='coerce').astype('Int64')
+        crtmp_df['Credito'] = crtmp_df['Tipo_Credito'].astype(str) + '-' + crtmp_df['Numero_Credito'].astype(str)
+        reporte_final = merge_sin_duplicados(reporte_final, crtmp_df, on_key=['Credito'])
+
+    # Unir FNZ003 (Pivoteado)
+    if not fnz003_df.empty:
+        fnz003_pivot = fnz003_df.pivot_table(index='Credito', columns='Concepto', values='Saldo', aggfunc='first').reset_index()
+        reporte_final = merge_sin_duplicados(reporte_final, fnz003_pivot, on_key=['Credito'])
+
+    # Unir MATRIZ DE CARTERA
+    if not matriz_cartera_df.empty:
+        matriz_limpia = matriz_cartera_df.drop_duplicates(subset=['Zona'])
+        reporte_final = merge_sin_duplicados(reporte_final, matriz_limpia, on_key=['Zona'])
+
+    # Unir hojas de ASESORES
+    for item in asesores_sheets:
+        info_df = item["data"]
+        merge_key = item["config"]["merge_on"]
+        info_df_limpia = info_df.drop_duplicates(subset=[merge_key])
+        reporte_final = merge_sin_duplicados(reporte_final, info_df_limpia, on_key=[merge_key])
+
+    # --- 6. TRANSFORMACIONES Y LIMPIEZA FINAL ---
+    print("🧹 Realizando transformaciones y limpieza final...")
     for col_cuota in ['Cuotas_Pagadas', 'Cuota_Vigente']:
         if col_cuota in reporte_final.columns:
-            reporte_final[col_cuota] = pd.to_numeric(reporte_final[col_cuota], errors='coerce')
-            # Esta es una regla de negocio muy específica, se mantiene como está.
-            reporte_final[col_cuota] = np.where(reporte_final[col_cuota] > 99, reporte_final[col_cuota] % 100, reporte_final[col_cuota])
-            reporte_final[col_cuota] = reporte_final[col_cuota].astype('Int64')
-    if 'Codigo_Vendedor' in reporte_final.columns:
-        reporte_final['Codigo_Vendedor'] = reporte_final['Codigo_Vendedor'].astype(str)
-
-    cols_a_borrar = [col for col in reporte_final.columns if col.endswith(('_Vencimientos', '_R03'))]
-    reporte_final = reporte_final.drop(columns=cols_a_borrar)
+            reporte_final[col_cuota] = pd.to_numeric(reporte_final[col_cuota], errors='coerce').astype('Int64')
 
     print("📅 Formateando fechas a DD/MM/YY...")
     for col_fecha in ['Fecha_Vencimiento', 'Fecha_Facturada']:
         if col_fecha in reporte_final.columns:
-            # Convierte a datetime, los errores se convertirán en NaT (Not a Time)
-            reporte_final[col_fecha] = pd.to_datetime(reporte_final[col_fecha], errors='coerce')
-            # Formatea a DD/MM/YY y reemplaza los valores nulos (NaT) con un string vacío
-            reporte_final[col_fecha] = reporte_final[col_fecha].dt.strftime('%d/%m/%y').fillna('')
+            reporte_final[col_fecha] = pd.to_datetime(reporte_final[col_fecha], errors='coerce').dt.strftime('%d/%m/%y').fillna('')
 
-    
+    # --- 7. EXPORTACIÓN DEL REPORTE FINAL ---
     print("\n--- 📊 Vista Previa del Reporte Final ---")
     print(reporte_final.head())
     print(f"\n--- Total de registros: {len(reporte_final)} ---")
     
-    # --- Guardar el DataFrame final ---
+    columnas_finales = sorted(reporte_final.columns.tolist())
+    print(f"\n--- Columnas finales en el reporte ({len(columnas_finales)}) ---")
+    print(columnas_finales)
+
     nombre_archivo_salida = 'Reporte_Consolidado_Final.xlsx'
     reporte_final.to_excel(nombre_archivo_salida, index=False, sheet_name='Reporte Consolidado')
 
