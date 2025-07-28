@@ -185,7 +185,12 @@ class DataProcessorService:
             if key in self.map:
                 col = self.map[key]
                 # 1. Limpiar y dejar solo números
-                self.df[col] = self.df[col].astype(str).str.replace(r'\D', '', regex=True)
+                self.df[col] = (
+                    self.df[col].astype(str)
+                    .str.replace(r'\D', '', regex=True)  # Elimina todo lo que no sea dígito
+                    .replace('^0+$', ' ', regex=True)    # Reemplaza puros ceros por espacio
+                    .str.strip()                         # Elimina espacios sobrantes
+                )
                 
                 # 2. Definir condiciones de validez
                 es_fijo_valido = self.df[col].str.len() == 7
