@@ -1,18 +1,26 @@
 from fastapi import FastAPI
-from src.api import datacredito_route # Importa tus rutas
-# from src.api import cifin_routes # (A futuro)
+# 1. IMPORTAR EL MIDDLEWARE DE CORS
+from fastapi.middleware.cors import CORSMiddleware 
+
+from src.api.v1.router import api_router 
+# from src.api.procesamiento_route import router as procesamiento_router
 
 app = FastAPI(
-    title="API de Procesamiento de Reportes Financieros",
-    description="Procesa archivos de Datacrédito y CIFIN."
+    title="API de Procesamiento de Reportes Financieros (Asíncrona)",
+    description="Procesa archivos pesados de Datacrédito y CIFIN usando un flujo de S3 y tareas en segundo plano."
 )
 
-# Incluye las rutas de Datacrédito en la aplicación principal
-app.include_router(datacredito_route.router, prefix="/api/v1")
+# 2. CONFIGURACIÓN DE CORS (CRÍTICO)
+# Esto le dice al navegador: "Deja que localhost:5173 hable conmigo"
+app.add_middleware(
+    CORSMiddleware,
+    # Lista de dominios permitidos (El puerto de Vite es 5173)
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"], 
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, PUT, DELETE)
+    allow_headers=["*"],  # Permitir todos los headers (Authorization, Content-Type, etc.)
+)
+# --- ZONA DE INCLUDES ---
 
-# (A futuro) Incluye las rutas de CIFIN
-# app.include_router(cifin_routes.router, prefix="/api/v1")
-
-@app.get("/", tags=["Root"])
-def read_root():
-    return {"message": "Bienvenido a la API de Procesamiento de Reportes"}
+# 3. Agrega el router que contiene REPORTES
+app.include_router(api_router, prefix="/api/v1") 
